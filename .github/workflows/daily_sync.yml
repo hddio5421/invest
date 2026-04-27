@@ -1,0 +1,35 @@
+name: Daily ETF Comparison Update
+
+on:
+  schedule:
+    # 每天台灣時間下午 18:00 (UTC 10:00) 自動執行
+    - cron: '0 10 * * *'
+  workflow_dispatch: # 讓你可以隨時手動按按鈕執行測試
+
+jobs:
+  run-tracker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Run ETF Tracker
+        run: python etf_tracker.py
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add .
+          git commit -m "Auto update ETF comparison: $(date)" || exit 0
+          git push
