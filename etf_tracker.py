@@ -141,7 +141,9 @@ def fetch_etf_holdings(etf_code, today_str):
                 if '股' in s or '明細' in s or '成' in s:
                     target_sheet = s
                     break
-            df_raw = pd.read_excel(file_path, sheet_name=target_sheet, header=None)
+            # 讓 pandas 自動判斷引擎，如果是舊版 xls 它會自動去 call 剛剛裝的 xlrd
+            #df_raw = pd.read_excel(file_path, sheet_name=target_sheet, header=None)
+            df_raw = pd.read_excel(file_path, sheet_name=target_sheet, header=None, engine='openpyxl' if file_path.endswith('.xlsx') else 'xlrd')
             
         # 尋找真正的表格頭
         start_row = 0
