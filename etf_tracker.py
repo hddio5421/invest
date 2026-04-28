@@ -639,8 +639,12 @@ def generate_dashboard(target_date_str, prev_date_str, available_dates, is_root=
         f.write(html_content)
     print(f"[Done] 已產生網頁: {out_file}")
 
+#def main():
+#    today = datetime.now()
+
 def main():
-    today = datetime.now()
+    # 強制轉換為台灣時間 (UTC+8)，避免 GitHub 伺服器時差導致日期錯亂
+    today = datetime.utcnow() + timedelta(hours=8)
     
     # 這裡我們保留這段邏輯以取得 today_str 作為「今日下載的標籤」
     # (注意：這裡的 weekday 邏輯主要影響我們去抓哪個日期的檔案，我們繼續沿用)
