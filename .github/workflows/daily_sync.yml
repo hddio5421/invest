@@ -2,7 +2,7 @@ name: Daily ETF Comparison Update
 
 on:
   schedule:
-    - cron: '0 10 * * *'
+    - cron: '43 9 * * *'
   workflow_dispatch:
 
 # 加發這張「寫入通行證」，機器人才有權限幫你把新數據存回網頁
