@@ -1,6 +1,6 @@
 name: Daily ETF Comparison Update
 
-on:
+#固定以下分鐘跑on:
   schedule:
     - cron: '7,22,37,52 * * * *'
     - cron: '43 9 * * *'
