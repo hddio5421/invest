@@ -2,7 +2,7 @@ name: Daily ETF Comparison Update
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '7,22,37,52 * * * *'
     - cron: '43 9 * * *'
   workflow_dispatch:
 
