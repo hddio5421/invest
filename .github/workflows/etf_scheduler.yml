@@ -3,7 +3,12 @@ name: Daily ETF Comparison Update
 #固定以下分鐘跑
 on:
   schedule:
-    - cron: '43 9 * * *'
+    # 第一次：台灣時間 17:43 (UTC 09:43) - 數據剛產出的第一時間
+    - cron: '43 9 * * *' 
+    # 第二次：台灣時間 18:43 (UTC 10:43) - 第一次若被延遲的保險補跑
+    - cron: '43 10 * * *'
+    # 第三次：台灣時間 19:43 (UTC 11:43) - 確保萬無一失的深夜最終檢查
+    - cron: '43 11 * * *'
   workflow_dispatch:
 
 permissions:
