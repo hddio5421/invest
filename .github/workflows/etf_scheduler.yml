@@ -1,0 +1,40 @@
+name: Daily ETF Comparison Update
+# v2
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+    - cron: '43 9 * * *'
+  workflow_dispatch:
+
+# 加發這張「寫入通行證」，機器人才有權限幫你把新數據存回網頁
+permissions:
+  contents: write
+
+jobs:
+  run-tracker:
+    runs-on: ubuntu-latest
+    steps:
+      # 順便幫你升級到最新版 (v4, v5)，消滅那個黃色的警告
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Run ETF Tracker
+        run: python etf_tracker.py
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add .
+          git commit -m "Auto update ETF comparison: $(date)" || exit 0
+          git push
