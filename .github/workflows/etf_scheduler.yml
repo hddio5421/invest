@@ -2,12 +2,12 @@ name: Daily ETF Comparison Update
 
 on:
   schedule:
-    # 台灣時間 17:17
-    - cron: '17 9 * * *'
     # 台灣時間 17:37
     - cron: '37 9 * * *'
     # 台灣時間 17:53
     - cron: '53 9 * * *'
+    # 台灣時間 18:22
+    - cron: '22 10 * * *'
   workflow_dispatch:
 
 permissions:
