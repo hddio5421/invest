@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>每週歷史資料</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; color: #333; background-color: #f9f9f9; line-height: 1.6; }
+        h1 { color: #2c3e50; text-align: center; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 10px; }
+        h2 { color: #ffffff; background-color: #2980b9; padding: 10px 20px; border-radius: 5px; margin-top: 50px; font-size: 1.5em; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h3 { color: #2c3e50; border-left: 5px solid #16a085; padding-left: 15px; margin-top: 35px; background-color: #eef7f5; padding: 10px 15px; border-radius: 0 5px 5px 0; }
+        h4 { color: #e67e22; margin-top: 20px; font-size: 1.1em; padding-left: 10px; }
+        .date-subtitle { text-align: center; color: #7f8c8d; font-size: 1.1em; margin-bottom: 20px; font-weight: bold; }
+        .warning-msg { background-color: #f39c12; color: white; padding: 15px; text-align: center; border-radius: 5px; font-size: 1.1em; margin-bottom: 30px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .styled-table { border-collapse: collapse; margin: 15px 0 30px 0; font-size: 0.95em; width: 100%; box-shadow: 0 0 20px rgba(0,0,0,0.05); background-color: white; border-radius: 5px; overflow: hidden; }
+        .styled-table thead tr { background-color: #34495e; color: #ffffff; text-align: right; }
+        .styled-table thead th { padding: 15px; border: 1px solid #ecf0f1; text-align: center; font-weight: 600; letter-spacing: 0.5px; }
+        .styled-table th, .styled-table td { padding: 12px 15px; border: 1px solid #ecf0f1; text-align: right; }
+        .styled-table td:nth-child(1), .styled-table td:nth-child(2) { text-align: left; font-weight: bold; color: #2c3e50; }
+        .styled-table tbody tr { border-bottom: 1px solid #ecf0f1; transition: all 0.2s ease; }
+        .styled-table tbody tr:nth-of-type(even) { background-color: #fcfcfc; }
+        .styled-table tbody tr:hover { background-color: #e8f4f8; transform: scale(1.001); }
+        .empty-msg { color: #7f8c8d; font-style: italic; margin-left: 20px; background-color: #f1f2f6; padding: 10px; border-radius: 4px; display: inline-block; }
+        .tab-btn { background-color: #ecf0f1; border: none; padding: 8px 16px; margin-right: 5px; cursor: pointer; border-radius: 4px 4px 0 0; font-weight: bold; color: #7f8c8d; }
+        .tab-btn.active { background-color: #3498db; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tab-container { margin-bottom: 20px; }
+        .site-nav { display: flex; gap: 8px; justify-content: center; margin: 14px 0 24px; flex-wrap: wrap; }
+        .site-nav a { color: #2c3e50; text-decoration: none; background: #ecf0f1; padding: 8px 14px; border-radius: 4px; font-weight: 700; }
+        .site-nav a.active { color: white; background: #2980b9; }
+        .control-panel { background: white; border: 1px solid #ecf0f1; border-radius: 5px; padding: 14px; margin: 20px 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .control-panel label { font-weight: 700; color: #2c3e50; }
+        .control-panel select, .control-panel button { padding: 6px 10px; border-radius: 4px; border: 1px solid #bdc3c7; font-size: 1em; }
+        .control-panel button { color: white; background: #2980b9; border-color: #2980b9; font-weight: 700; cursor: pointer; }
+    </style>
+    <script>
+    function switchTab(containerId, tabType, btn) {
+        var container = document.getElementById(containerId);
+        var contents = container.getElementsByClassName('tab-content');
+        for (var i = 0; i < contents.length; i++) contents[i].classList.remove('active');
+        var btns = btn.parentElement.getElementsByClassName('tab-btn');
+        for (var j = 0; j < btns.length; j++) btns[j].classList.remove('active');
+        container.querySelector('.' + tabType).classList.add('active');
+        btn.classList.add('active');
+    }
+    </script>
+</head>
+<body>
+<h1>每週歷史資料</h1>
+<nav class='site-nav'><a class='' href='../index.html'>每日總覽</a><a class='active' href='../weekly/index.html'>每週歷史</a><a class='' href='../range/index.html'>自訂區間</a></nav>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <label for="weekSelect" style="font-size: 1.1em; font-weight: bold; color: #2c3e50;">切換歷史週別：</label>
+        <select id="weekSelect" style="padding: 5px 10px; font-size: 1em; border-radius: 4px; border: 1px solid #bdc3c7;" onchange="window.location.href=this.value">
+            <option value='../weekly/2026/index_2026W20.html' selected>2026W20（2026-05-11 ~ 2026-05-11）</option>
+            <option value='../weekly/2026/index_2026W19.html' >2026W19（2026-05-04 ~ 2026-05-08）</option>
+            <option value='../weekly/2026/index_2026W18.html' >2026W18（2026-04-27 ~ 2026-04-30）</option>
+            <option value='../weekly/2026/index_2026W17.html' >2026W17（2026-04-21 ~ 2026-04-24）</option>
+        </select>
+    </div>
+    <div class='date-subtitle'>週別：2026W20｜區間：2026-05-11 vs 2026-05-11</div>
+<h2>區塊一：總體市場 TOP 5 增減持股</h2>
+
+    <div class="tab-container" id="overall-tabs">
+        <div>
+            <button class="tab-btn active" onclick="switchTab('overall-tabs', 'tab-vol', this)">依股數增減 (量體)</button>
+            <button class="tab-btn" onclick="switchTab('overall-tabs', 'tab-pct', this)">依總資金占比變動 (意圖)</button>
+        </div>
+        <div class="tab-content tab-vol active">
+    <h3>[增] 總體股數增持 TOP 5 (量體)</h3>
+<p class='empty-msg'>無增持紀錄</p>
+<h3>[減] 總體股數減持 TOP 5 (量體)</h3>
+<p class='empty-msg'>無減持紀錄</p>
+</div>
+<div class="tab-content tab-pct">
+<h3>[增] 總資金占比增加 TOP 5 (意圖)</h3>
+<p class='empty-msg'>無增持紀錄</p>
+<h3>[減] 總資金占比減少 TOP 5 (意圖)</h3>
+<p class='empty-msg'>無減持紀錄</p>
+</div>
+</div>
+<h2>區塊二：各檔 ETF 獨立的 TOP 5 增減持股</h2>
+<h3>[00981A] 持股變動排行榜</h3>
+
+        <div class="tab-container" id="etf-tabs-00981A">
+            <div>
+                <button class="tab-btn active" onclick="switchTab('etf-tabs-00981A', 'tab-vol', this)">依股數增減 (量體)</button>
+                <button class="tab-btn" onclick="switchTab('etf-tabs-00981A', 'tab-pct', this)">依變動幅度 (意圖)</button>
+            </div>
+            <div class="tab-content tab-vol active">
+        <h4>[增] 增持最多 TOP 5 (量體)</h4>
+<p class='empty-msg'>無紀錄</p>
+<h4>[減] 減持最多 TOP 5 (量體)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+<div class="tab-content tab-pct">
+<h4>[增] 增持幅度 TOP 5 (意圖)</h4>
+<p class='empty-msg'>無紀錄</p>
+<h4>[減] 減持幅度 TOP 5 (意圖)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+</div>
+<h3>[00988A] 持股變動排行榜</h3>
+
+        <div class="tab-container" id="etf-tabs-00988A">
+            <div>
+                <button class="tab-btn active" onclick="switchTab('etf-tabs-00988A', 'tab-vol', this)">依股數增減 (量體)</button>
+                <button class="tab-btn" onclick="switchTab('etf-tabs-00988A', 'tab-pct', this)">依變動幅度 (意圖)</button>
+            </div>
+            <div class="tab-content tab-vol active">
+        <h4>[增] 增持最多 TOP 5 (量體)</h4>
+<p class='empty-msg'>無紀錄</p>
+<h4>[減] 減持最多 TOP 5 (量體)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+<div class="tab-content tab-pct">
+<h4>[增] 增持幅度 TOP 5 (意圖)</h4>
+<p class='empty-msg'>無紀錄</p>
+<h4>[減] 減持幅度 TOP 5 (意圖)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+</div>
+<h3>[00990A] 持股變動排行榜</h3>
+
+        <div class="tab-container" id="etf-tabs-00990A">
+            <div>
+                <button class="tab-btn active" onclick="switchTab('etf-tabs-00990A', 'tab-vol', this)">依股數增減 (量體)</button>
+                <button class="tab-btn" onclick="switchTab('etf-tabs-00990A', 'tab-pct', this)">依變動幅度 (意圖)</button>
+            </div>
+            <div class="tab-content tab-vol active">
+        <h4>[增] 增持最多 TOP 5 (量體)</h4>
+<p class='empty-msg'>無紀錄</p>
+<h4>[減] 減持最多 TOP 5 (量體)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+<div class="tab-content tab-pct">
+<h4>[增] 增持幅度 TOP 5 (意圖)</h4>
+<p class='empty-msg'>無紀錄</p>
+<h4>[減] 減持幅度 TOP 5 (意圖)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+</div>
+<h3>[00992A] 持股變動排行榜</h3>
+
+        <div class="tab-container" id="etf-tabs-00992A">
+            <div>
+                <button class="tab-btn active" onclick="switchTab('etf-tabs-00992A', 'tab-vol', this)">依股數增減 (量體)</button>
+                <button class="tab-btn" onclick="switchTab('etf-tabs-00992A', 'tab-pct', this)">依變動幅度 (意圖)</button>
+            </div>
+            <div class="tab-content tab-vol active">
+        <h4>[增] 增持最多 TOP 5 (量體)</h4>
+<p class='empty-msg'>無紀錄</p>
+<h4>[減] 減持最多 TOP 5 (量體)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+<div class="tab-content tab-pct">
+<h4>[增] 增持幅度 TOP 5 (意圖)</h4>
+<p class='empty-msg'>無紀錄</p>
+<h4>[減] 減持幅度 TOP 5 (意圖)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+</div>
+<h3>[00982A] 持股變動排行榜</h3>
+
+        <div class="tab-container" id="etf-tabs-00982A">
+            <div>
+                <button class="tab-btn active" onclick="switchTab('etf-tabs-00982A', 'tab-vol', this)">依股數增減 (量體)</button>
+                <button class="tab-btn" onclick="switchTab('etf-tabs-00982A', 'tab-pct', this)">依變動幅度 (意圖)</button>
+            </div>
+            <div class="tab-content tab-vol active">
+        <h4>[增] 增持最多 TOP 5 (量體)</h4>
+<p class='empty-msg'>無紀錄</p>
+<h4>[減] 減持最多 TOP 5 (量體)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+<div class="tab-content tab-pct">
+<h4>[增] 增持幅度 TOP 5 (意圖)</h4>
+<p class='empty-msg'>無紀錄</p>
+<h4>[減] 減持幅度 TOP 5 (意圖)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+</div>
+<h3>[00991A] 持股變動排行榜</h3>
+
+        <div class="tab-container" id="etf-tabs-00991A">
+            <div>
+                <button class="tab-btn active" onclick="switchTab('etf-tabs-00991A', 'tab-vol', this)">依股數增減 (量體)</button>
+                <button class="tab-btn" onclick="switchTab('etf-tabs-00991A', 'tab-pct', this)">依變動幅度 (意圖)</button>
+            </div>
+            <div class="tab-content tab-vol active">
+        <h4>[增] 增持最多 TOP 5 (量體)</h4>
+<p class='empty-msg'>無紀錄</p>
+<h4>[減] 減持最多 TOP 5 (量體)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+<div class="tab-content tab-pct">
+<h4>[增] 增持幅度 TOP 5 (意圖)</h4>
+<p class='empty-msg'>無紀錄</p>
+<h4>[減] 減持幅度 TOP 5 (意圖)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+</div>
+</body>
+</html>
