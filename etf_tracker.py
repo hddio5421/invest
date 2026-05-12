@@ -1,5 +1,6 @@
 import os
 import glob
+import json
 import pandas as pd
 from datetime import datetime, timedelta
 import traceback
@@ -284,7 +285,7 @@ def format_number(val, is_float=False):
     except:
         return val
 
-def generate_dashboard(target_date_str, prev_date_str, available_dates, is_root=False):
+def legacy_generate_dashboard(target_date_str, prev_date_str, available_dates, is_root=False):
     target_file = f"history/history_{target_date_str}.csv"
     if not os.path.exists(target_file):
         return
@@ -639,6 +640,1144 @@ def generate_dashboard(target_date_str, prev_date_str, available_dates, is_root=
         f.write(html_content)
     print(f"[Done] 已產生網頁: {out_file}")
 
+def format_number(val, is_float=False):
+    try:
+        if pd.isna(val):
+            return "-"
+        if is_float:
+            return f"{float(val):.2f}"
+        return f"{int(round(float(val))):,.0f}"
+    except Exception:
+        return val
+
+def format_date(d_str):
+    if isinstance(d_str, str) and len(d_str) == 8:
+        return f"{d_str[:4]}-{d_str[4:6]}-{d_str[6:]}"
+    return d_str
+
+def format_pct(x):
+    if x == float('inf'):
+        return "新建倉"
+    if x == -100.0:
+        return "清倉"
+    try:
+        return f"{float(x):+.2f}%"
+    except Exception:
+        return x
+
+def empty_history_df():
+    return pd.DataFrame(columns=['Stock_Code', 'Stock_Name', 'Weight', 'Shares', 'ETF'])
+
+def read_history(date_str):
+    path = f"history/history_{date_str}.csv"
+    if not date_str or not os.path.exists(path):
+        return empty_history_df()
+    df = pd.read_csv(path, dtype={'Stock_Code': str})
+    if not df.empty:
+        df['Stock_Code'] = df['Stock_Code'].astype(str)
+        df['Stock_Name'] = df['Stock_Name'].astype(str)
+        df['Shares'] = pd.to_numeric(df['Shares'], errors='coerce').fillna(0)
+        df['Weight'] = pd.to_numeric(df['Weight'], errors='coerce').fillna(0)
+    return df
+
+def calc_change_pct(start_shares, end_shares):
+    if start_shares == 0 and end_shares > 0:
+        return float('inf')
+    if start_shares > 0 and end_shares == 0:
+        return -100.0
+    if start_shares == 0 and end_shares == 0:
+        return 0.0
+    return (end_shares - start_shares) / start_shares * 100.0
+
+def build_total_share_changes(df_start, df_end):
+    key_cols = ['Stock_Code', 'Stock_Name']
+    if df_start.empty:
+        start = pd.DataFrame(columns=key_cols + ['Start_Shares', 'Start_ETF_Count'])
+    else:
+        start = df_start.groupby(key_cols, dropna=False).agg(
+            Start_Shares=('Shares', 'sum'),
+            Start_ETF_Count=('ETF', 'nunique')
+        ).reset_index()
+    if df_end.empty:
+        end = pd.DataFrame(columns=key_cols + ['End_Shares', 'End_ETF_Count'])
+    else:
+        end = df_end.groupby(key_cols, dropna=False).agg(
+            End_Shares=('Shares', 'sum'),
+            End_ETF_Count=('ETF', 'nunique')
+        ).reset_index()
+    overall = pd.merge(end, start, on=key_cols, how='outer')
+    for col in ['Start_Shares', 'End_Shares', 'Start_ETF_Count', 'End_ETF_Count']:
+        overall[col] = pd.to_numeric(overall[col], errors='coerce').fillna(0)
+    overall['Total_Shares_Change'] = overall['End_Shares'] - overall['Start_Shares']
+    overall['Total_Shares_Change_Pct'] = overall.apply(
+        lambda row: calc_change_pct(row['Start_Shares'], row['End_Shares']), axis=1
+    )
+    overall['ETF_Count'] = overall[['Start_ETF_Count', 'End_ETF_Count']].max(axis=1).astype(int)
+    return overall
+
+def build_etf_results(df_start, df_end, is_first_run=False):
+    results = {}
+    for etf in TARGET_ETFS:
+        df_yest = df_start[df_start['ETF'] == etf].copy() if not df_start.empty else empty_history_df()
+        df_tod = df_end[df_end['ETF'] == etf].copy() if not df_end.empty else empty_history_df()
+        if df_tod.empty and df_yest.empty:
+            continue
+        etf_is_first_run = is_first_run or df_yest.empty
+        changes = calculate_changes(df_yest, df_tod, etf_is_first_run)
+        if changes.empty:
+            continue
+        changes['ETF'] = etf
+        inc, dec = get_top_changes(changes, top_n=5, sort_by='Shares_Change')
+        inc_pct, dec_pct = get_top_changes(changes, top_n=5, sort_by='Shares_Change_Pct')
+        results[etf] = {'changes': changes, 'inc': inc, 'dec': dec, 'inc_pct': inc_pct, 'dec_pct': dec_pct}
+    return results
+
+def relative_prefix(depth):
+    return "../" * depth
+
+def nav_html(prefix="", active="daily"):
+    links = [
+        ("daily", "每日總覽", f"{prefix}index.html"),
+        ("weekly", "每週歷史", f"{prefix}weekly/index.html"),
+        ("range", "自訂區間", f"{prefix}range/index.html"),
+    ]
+    return "<nav class='site-nav'>" + "".join(
+        f"<a class='{'active' if key == active else ''}' href='{href}'>{label}</a>"
+        for key, label, href in links
+    ) + "</nav>"
+
+def page_head(title):
+    return f"""<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>{title}</title>
+    <style>
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; color: #333; background-color: #f9f9f9; line-height: 1.6; }}
+        h1 {{ color: #2c3e50; text-align: center; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 10px; }}
+        h2 {{ color: #ffffff; background-color: #2980b9; padding: 10px 20px; border-radius: 5px; margin-top: 50px; font-size: 1.5em; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+        h3 {{ color: #2c3e50; border-left: 5px solid #16a085; padding-left: 15px; margin-top: 35px; background-color: #eef7f5; padding: 10px 15px; border-radius: 0 5px 5px 0; }}
+        h4 {{ color: #e67e22; margin-top: 20px; font-size: 1.1em; padding-left: 10px; }}
+        .date-subtitle {{ text-align: center; color: #7f8c8d; font-size: 1.1em; margin-bottom: 20px; font-weight: bold; }}
+        .warning-msg {{ background-color: #f39c12; color: white; padding: 15px; text-align: center; border-radius: 5px; font-size: 1.1em; margin-bottom: 30px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+        .styled-table {{ border-collapse: collapse; margin: 15px 0 30px 0; font-size: 0.95em; width: 100%; box-shadow: 0 0 20px rgba(0,0,0,0.05); background-color: white; border-radius: 5px; overflow: hidden; }}
+        .styled-table thead tr {{ background-color: #34495e; color: #ffffff; text-align: right; }}
+        .styled-table thead th {{ padding: 15px; border: 1px solid #ecf0f1; text-align: center; font-weight: 600; letter-spacing: 0.5px; }}
+        .styled-table th, .styled-table td {{ padding: 12px 15px; border: 1px solid #ecf0f1; text-align: right; }}
+        .styled-table td:nth-child(1), .styled-table td:nth-child(2) {{ text-align: left; font-weight: bold; color: #2c3e50; }}
+        .styled-table tbody tr {{ border-bottom: 1px solid #ecf0f1; transition: all 0.2s ease; }}
+        .styled-table tbody tr:nth-of-type(even) {{ background-color: #fcfcfc; }}
+        .styled-table tbody tr:hover {{ background-color: #e8f4f8; transform: scale(1.001); }}
+        .empty-msg {{ color: #7f8c8d; font-style: italic; margin-left: 20px; background-color: #f1f2f6; padding: 10px; border-radius: 4px; display: inline-block; }}
+        .tab-btn {{ background-color: #ecf0f1; border: none; padding: 8px 16px; margin-right: 5px; cursor: pointer; border-radius: 4px 4px 0 0; font-weight: bold; color: #7f8c8d; }}
+        .tab-btn.active {{ background-color: #3498db; color: white; }}
+        .tab-content {{ display: none; }}
+        .tab-content.active {{ display: block; }}
+        .tab-container {{ margin-bottom: 20px; }}
+        .site-nav {{ display: flex; gap: 8px; justify-content: center; margin: 14px 0 24px; flex-wrap: wrap; }}
+        .site-nav a {{ color: #2c3e50; text-decoration: none; background: #ecf0f1; padding: 8px 14px; border-radius: 4px; font-weight: 700; }}
+        .site-nav a.active {{ color: white; background: #2980b9; }}
+        .control-panel {{ background: white; border: 1px solid #ecf0f1; border-radius: 5px; padding: 14px; margin: 20px 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }}
+        .control-panel label {{ font-weight: 700; color: #2c3e50; }}
+        .control-panel select, .control-panel button {{ padding: 6px 10px; border-radius: 4px; border: 1px solid #bdc3c7; font-size: 1em; }}
+        .control-panel button {{ color: white; background: #2980b9; border-color: #2980b9; font-weight: 700; cursor: pointer; }}
+    </style>
+    <script>
+    function switchTab(containerId, tabType, btn) {{
+        var container = document.getElementById(containerId);
+        var contents = container.getElementsByClassName('tab-content');
+        for (var i = 0; i < contents.length; i++) contents[i].classList.remove('active');
+        var btns = btn.parentElement.getElementsByClassName('tab-btn');
+        for (var j = 0; j < btns.length; j++) btns[j].classList.remove('active');
+        container.querySelector('.' + tabType).classList.add('active');
+        btn.classList.add('active');
+    }}
+    </script>
+</head>
+<body>
+"""
+
+def page_tail():
+    return "</body>\n</html>\n"
+
+def render_date_select(available_dates, target_date_str, depth):
+    prefix = relative_prefix(depth)
+    options = ""
+    for d in reversed(available_dates):
+        selected = 'selected' if d == target_date_str else ''
+        link = f"{prefix}dashboards/{d[:4]}/{d[4:6]}/index_{d}.html"
+        options += f"            <option value='{link}' {selected}>{format_date(d)}</option>\n"
+    return f"""
+    <div style="text-align: center; margin-bottom: 20px;">
+        <label for="dateSelect" style="font-size: 1.1em; font-weight: bold; color: #2c3e50;">切換歷史日期：</label>
+        <select id="dateSelect" style="padding: 5px 10px; font-size: 1em; border-radius: 4px; border: 1px solid #bdc3c7;" onchange="window.location.href=this.value">
+{options}        </select>
+    </div>
+    """
+
+def render_week_select(week_rows, current_key, depth):
+    prefix = relative_prefix(depth)
+    options = ""
+    for row in reversed(week_rows):
+        selected = "selected" if row['key'] == current_key else ""
+        options += f"            <option value='{prefix}{row['href']}' {selected}>{row['key']}（{format_date(row['start'])} ~ {format_date(row['end'])}）</option>\n"
+    return f"""
+    <div style="text-align: center; margin-bottom: 20px;">
+        <label for="weekSelect" style="font-size: 1.1em; font-weight: bold; color: #2c3e50;">切換歷史週別：</label>
+        <select id="weekSelect" style="padding: 5px 10px; font-size: 1em; border-radius: 4px; border: 1px solid #bdc3c7;" onchange="window.location.href=this.value">
+{options}        </select>
+    </div>
+    """
+
+def render_total_table(df):
+    if df.empty:
+        return "<p class='empty-msg'>無資料</p>\n"
+    df_disp = df[['Stock_Code', 'Stock_Name', 'Total_Shares_Change', 'Total_Shares_Change_Pct', 'Start_Shares', 'End_Shares', 'ETF_Count']].copy()
+    df_disp.columns = ['股票代碼', '股票名稱', '總股數變動', '總持股變動幅度(%)', '起始總股數', '最新總股數', '出現ETF數']
+    df_disp['總股數變動'] = df_disp['總股數變動'].apply(format_number)
+    df_disp['總持股變動幅度(%)'] = df_disp['總持股變動幅度(%)'].apply(format_pct)
+    df_disp['起始總股數'] = df_disp['起始總股數'].apply(format_number)
+    df_disp['最新總股數'] = df_disp['最新總股數'].apply(format_number)
+    df_disp['出現ETF數'] = df_disp['出現ETF數'].apply(format_number)
+    return df_disp.to_html(index=False, classes="styled-table", escape=False)
+
+def render_overall_block(overall, container_id="overall-tabs"):
+    html = "<h2>區塊一：總體市場 TOP 5 增減持股</h2>\n"
+    if overall.empty:
+        return html + "<p class='empty-msg'>目前無任何變動資料</p>\n"
+    overall_inc, overall_dec = get_top_changes(overall, top_n=5, sort_by='Total_Shares_Change')
+    overall_inc_pct, overall_dec_pct = get_top_changes(overall, top_n=5, sort_by='Total_Shares_Change_Pct')
+    html += f"""
+    <div class="tab-container" id="{container_id}">
+        <div>
+            <button class="tab-btn active" onclick="switchTab('{container_id}', 'tab-vol', this)">依股數增減 (量體)</button>
+            <button class="tab-btn" onclick="switchTab('{container_id}', 'tab-pct', this)">依變動幅度 (意圖)</button>
+        </div>
+        <div class="tab-content tab-vol active">
+    """
+    html += "<h3>[增] 總體資金增持 TOP 5 (量體)</h3>\n"
+    html += render_total_table(overall_inc) if not overall_inc.empty else "<p class='empty-msg'>無增持紀錄</p>\n"
+    html += "<h3>[減] 總體資金減持 TOP 5 (量體)</h3>\n"
+    html += render_total_table(overall_dec) if not overall_dec.empty else "<p class='empty-msg'>無減持紀錄</p>\n"
+    html += "</div>\n<div class=\"tab-content tab-pct\">\n"
+    html += "<h3>[增] 總體資金增持幅度 TOP 5 (意圖)</h3>\n"
+    html += render_total_table(overall_inc_pct) if not overall_inc_pct.empty else "<p class='empty-msg'>無增持紀錄</p>\n"
+    html += "<h3>[減] 總體資金減持幅度 TOP 5 (意圖)</h3>\n"
+    html += render_total_table(overall_dec_pct) if not overall_dec_pct.empty else "<p class='empty-msg'>無減持紀錄</p>\n"
+    html += "</div>\n</div>\n"
+    return html
+
+def render_etf_top_table(title, df):
+    html = f"<h4>{title}</h4>\n"
+    if df.empty:
+        return html + "<p class='empty-msg'>無紀錄</p>\n"
+    df_disp = df[['Stock_Code', 'Stock_Name', 'Shares_Change', 'Shares_Change_Pct', 'Weight_Change', 'Shares_Today', 'Weight_Today']].copy()
+    df_disp.columns = ['股票代碼', '股票名稱', '股數變動', '股數變動幅度', '權重變動(%)', '最新股數', '最新權重(%)']
+    df_disp['股數變動'] = df_disp['股數變動'].apply(format_number)
+    df_disp['股數變動幅度'] = df_disp['股數變動幅度'].apply(format_pct)
+    df_disp['權重變動(%)'] = df_disp['權重變動(%)'].apply(lambda x: f"{x:+.2f}%")
+    df_disp['最新股數'] = df_disp['最新股數'].apply(format_number)
+    df_disp['最新權重(%)'] = df_disp['最新權重(%)'].apply(lambda x: f"{x:.2f}%")
+    return html + df_disp.to_html(index=False, classes="styled-table", escape=False)
+
+def render_etf_pct_table(title, df):
+    html = f"<h4>{title}</h4>\n"
+    if df.empty:
+        return html + "<p class='empty-msg'>無紀錄</p>\n"
+    df_disp = df[['Stock_Code', 'Stock_Name', 'Shares_Change', 'Shares_Change_Pct', 'Weight_Change', 'Shares_Today', 'Weight_Today']].copy()
+    df_disp.columns = ['股票代碼', '股票名稱', '股數變動', '股數變動幅度', '權重變動(%)', '最新股數', '最新權重(%)']
+    df_disp['股數變動'] = df_disp['股數變動'].apply(format_number)
+    df_disp['股數變動幅度'] = df_disp['股數變動幅度'].apply(format_pct)
+    df_disp['權重變動(%)'] = df_disp['權重變動(%)'].apply(lambda x: f"{x:+.2f}%")
+    df_disp['最新股數'] = df_disp['最新股數'].apply(format_number)
+    df_disp['最新權重(%)'] = df_disp['最新權重(%)'].apply(lambda x: f"{x:.2f}%")
+    return html + df_disp.to_html(index=False, classes="styled-table", escape=False)
+
+def render_etf_blocks(etf_results):
+    html = "<h2>區塊二：各檔 ETF 獨立的 TOP 5 增減持股</h2>\n"
+    for etf in TARGET_ETFS:
+        html += f"<h3>[{etf}] 持股變動排行榜</h3>\n"
+        if etf not in etf_results:
+            html += f"<p class='empty-msg'>尚無 {etf} 資料</p>\n"
+            continue
+        html += f"""
+        <div class="tab-container" id="etf-tabs-{etf}">
+            <div>
+                <button class="tab-btn active" onclick="switchTab('etf-tabs-{etf}', 'tab-vol', this)">依股數增減 (量體)</button>
+                <button class="tab-btn" onclick="switchTab('etf-tabs-{etf}', 'tab-pct', this)">依變動幅度 (意圖)</button>
+            </div>
+            <div class="tab-content tab-vol active">
+        """
+        html += render_etf_top_table("[增] 增持最多 TOP 5 (量體)", etf_results[etf]['inc'])
+        html += render_etf_top_table("[減] 減持最多 TOP 5 (量體)", etf_results[etf]['dec'])
+        html += "</div>\n<div class=\"tab-content tab-pct\">\n"
+        html += render_etf_pct_table("[增] 增持幅度 TOP 5 (意圖)", etf_results[etf]['inc_pct'])
+        html += render_etf_pct_table("[減] 減持幅度 TOP 5 (意圖)", etf_results[etf]['dec_pct'])
+        html += "</div>\n</div>\n"
+    return html
+
+def render_detail_blocks(etf_results):
+    html = "<h2>區塊三：各檔 ETF 詳細持股明細</h2>\n"
+    for etf in TARGET_ETFS:
+        html += "<details style='margin-bottom: 20px; background-color: #ffffff; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);'>\n"
+        html += f"  <summary style='cursor: pointer; font-size: 1.2em; font-weight: bold; color: #2c3e50; padding: 10px; border-left: 5px solid #16a085; background-color: #eef7f5; border-radius: 0 5px 5px 0; list-style-position: inside;'>[{etf}] 完整持股清單 (點擊展開/收合)</summary>\n"
+        html += "  <div style='margin-top: 15px;'>\n"
+        if etf not in etf_results:
+            html += f"  <p class='empty-msg'>尚無 {etf} 資料</p>\n  </div>\n</details>\n"
+            continue
+        changes = etf_results[etf]['changes']
+        if changes.empty:
+            html += "<p class='empty-msg'>無明細資料</p>\n"
+        else:
+            changes = changes.sort_values(by='Weight_Today', ascending=False)
+            df_disp = changes[['Stock_Code', 'Stock_Name', 'Shares_Today', 'Weight_Today', 'Yesterday_Shares_Display', 'Shares_Change_Display', 'Weight_Change_Display']].copy()
+            df_disp.columns = ['股票代碼', '股票名稱', '今日股數', '今日權重(%)', '起始股數', '股數變化', '權重變化(%)']
+            df_disp['今日股數'] = df_disp['今日股數'].apply(format_number)
+            df_disp['今日權重(%)'] = df_disp['今日權重(%)'].apply(lambda x: f"{x:.2f}%")
+            html += df_disp.to_html(index=False, classes="styled-table", escape=False)
+        html += "  </div>\n</details>\n"
+    return html
+
+def render_change_report(title, subtitle, start_date, end_date, depth, active, include_details=False, available_dates=None, extra_controls=""):
+    prefix = relative_prefix(depth)
+    df_start = read_history(start_date) if start_date else empty_history_df()
+    df_end = read_history(end_date)
+    is_first_run = not start_date
+    overall = build_total_share_changes(df_start, df_end)
+    etf_results = build_etf_results(df_start, df_end, is_first_run=is_first_run)
+    html = page_head(title)
+    html += f"<h1>{title}</h1>\n"
+    html += nav_html(prefix, active=active)
+    html += extra_controls
+    if available_dates is not None:
+        html += render_date_select(available_dates, end_date, depth)
+    html += f"<div class='date-subtitle'>{subtitle}</div>\n"
+    if is_first_run:
+        html += "<div class='warning-msg'>此日期沒有前一筆歷史資料，僅建立基準，不計算變動差異。</div>\n"
+    html += render_overall_block(overall)
+    html += render_etf_blocks(etf_results)
+    if include_details:
+        html += render_detail_blocks(etf_results)
+    html += page_tail()
+    return html
+
+def generate_dashboard(target_date_str, prev_date_str, available_dates, is_root=False):
+    if not os.path.exists(f"history/history_{target_date_str}.csv"):
+        return
+    depth = 0 if is_root else 3
+    if prev_date_str:
+        subtitle = f"比較期間：{format_date(prev_date_str)} vs {format_date(target_date_str)}"
+    else:
+        subtitle = f"比較期間：無前日資料 vs {format_date(target_date_str)}"
+    html_content = render_change_report(
+        "主動式 ETF 持股變化追蹤",
+        subtitle,
+        prev_date_str,
+        target_date_str,
+        depth=depth,
+        active="daily",
+        include_details=True,
+        available_dates=available_dates
+    )
+    if is_root:
+        out_file = "index.html"
+    else:
+        out_dir = f"dashboards/{target_date_str[:4]}/{target_date_str[4:6]}"
+        os.makedirs(out_dir, exist_ok=True)
+        out_file = f"{out_dir}/index_{target_date_str}.html"
+    with open(out_file, "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print(f"[Done] 已產生網頁: {out_file}")
+
+def generate_weekly_pages(available_dates):
+    if len(available_dates) < 2:
+        return
+    weeks = {}
+    for d in available_dates:
+        iso_year, iso_week, _ = datetime.strptime(d, "%Y%m%d").isocalendar()
+        key = f"{iso_year}W{iso_week:02d}"
+        weeks.setdefault(key, []).append(d)
+    os.makedirs("weekly", exist_ok=True)
+    rows = []
+    for key in sorted(weeks):
+        dates = sorted(weeks[key])
+        start_date, end_date = dates[0], dates[-1]
+        if start_date == end_date:
+            continue
+        year = key[:4]
+        out_dir = f"weekly/{year}"
+        os.makedirs(out_dir, exist_ok=True)
+        out_file = f"{out_dir}/index_{key}.html"
+        title = f"每週歷史資料 {key}"
+        subtitle = f"週區間：{format_date(start_date)} vs {format_date(end_date)}"
+        html = render_change_report(title, subtitle, start_date, end_date, depth=2, active="weekly", include_details=False)
+        with open(out_file, "w", encoding="utf-8") as f:
+            f.write(html)
+        rows.append([key, format_date(start_date), format_date(end_date), f"{year}/index_{key}.html"])
+    index_html = page_head("每週歷史資料")
+    index_html += "<h1>每週歷史資料</h1>\n"
+    index_html += nav_html("../", active="weekly")
+    index_html += "<div class='date-subtitle'>以每週第一個與最後一個可用交易日計算持股變化</div>\n"
+    if rows:
+        df = pd.DataFrame(rows, columns=['週別', '起始日期', '結束日期', '連結'])
+        df['連結'] = df['連結'].apply(lambda x: f"<a href='{x}'>查看</a>")
+        index_html += df.to_html(index=False, classes="styled-table", escape=False)
+    else:
+        index_html += "<p class='empty-msg'>尚無足夠資料產生週報</p>\n"
+    index_html += page_tail()
+    with open("weekly/index.html", "w", encoding="utf-8") as f:
+        f.write(index_html)
+    print("[Done] 已產生每週歷史頁")
+
+def generate_range_page(available_dates):
+    os.makedirs("range", exist_ok=True)
+    records = []
+    for d in available_dates:
+        df = read_history(d)
+        for row in df[['Stock_Code', 'Stock_Name', 'Shares', 'ETF']].itertuples(index=False):
+            records.append({
+                'date': d,
+                'code': str(row.Stock_Code),
+                'name': str(row.Stock_Name),
+                'shares': float(row.Shares),
+                'etf': str(row.ETF)
+            })
+    data_json = json.dumps(records, ensure_ascii=False)
+    dates_json = json.dumps(available_dates, ensure_ascii=False)
+    default_start = available_dates[-2] if len(available_dates) > 1 else available_dates[-1]
+    default_end = available_dates[-1]
+    html = page_head("自訂區間")
+    html += "<h1>自訂區間</h1>\n"
+    html += nav_html("../", active="range")
+    html += """
+<div class="control-panel">
+    <label for="startDate">起始日期</label>
+    <select id="startDate"></select>
+    <label for="endDate">結束日期</label>
+    <select id="endDate"></select>
+    <button onclick="renderRange()">更新</button>
+</div>
+<div class="date-subtitle" id="rangeSubtitle"></div>
+<div id="rangeOutput"></div>
+"""
+    html += f"""
+<script>
+const historyRecords = {data_json};
+const availableDates = {dates_json};
+const defaultStart = "{default_start}";
+const defaultEnd = "{default_end}";
+
+function fmtDate(d) {{
+    return d.slice(0, 4) + "-" + d.slice(4, 6) + "-" + d.slice(6, 8);
+}}
+function fmtNumber(v) {{
+    return Math.round(v).toLocaleString("en-US");
+}}
+function fmtPct(v) {{
+    if (v === Infinity) return "新建倉";
+    if (v === -100) return "清倉";
+    return (v >= 0 ? "+" : "") + v.toFixed(2) + "%";
+}}
+function aggregate(date) {{
+    const map = new Map();
+    historyRecords.filter(r => r.date === date).forEach(r => {{
+        const key = r.code + "||" + r.name;
+        if (!map.has(key)) map.set(key, {{ code: r.code, name: r.name, shares: 0, etfs: new Set() }});
+        const item = map.get(key);
+        item.shares += Number(r.shares || 0);
+        item.etfs.add(r.etf);
+    }});
+    return map;
+}}
+function calcPct(startShares, endShares) {{
+    if (startShares === 0 && endShares > 0) return Infinity;
+    if (startShares > 0 && endShares === 0) return -100;
+    if (startShares === 0 && endShares === 0) return 0;
+    return (endShares - startShares) / startShares * 100;
+}}
+function buildRows(startDate, endDate) {{
+    const start = aggregate(startDate);
+    const end = aggregate(endDate);
+    const keys = new Set([...start.keys(), ...end.keys()]);
+    return Array.from(keys).map(key => {{
+        const s = start.get(key) || {{ code: key.split("||")[0], name: key.split("||")[1], shares: 0, etfs: new Set() }};
+        const e = end.get(key) || {{ code: key.split("||")[0], name: key.split("||")[1], shares: 0, etfs: new Set() }};
+        const etfs = new Set([...s.etfs, ...e.etfs]);
+        const change = e.shares - s.shares;
+        return {{ code: e.code || s.code, name: e.name || s.name, change, pct: calcPct(s.shares, e.shares), startShares: s.shares, endShares: e.shares, etfCount: etfs.size }};
+    }}).filter(r => r.change !== 0);
+}}
+function tableHtml(title, rows) {{
+    if (!rows.length) return `<h3>${{title}}</h3><p class='empty-msg'>無資料</p>`;
+    const body = rows.map(r => `<tr><td>${{r.code}}</td><td>${{r.name}}</td><td>${{fmtNumber(r.change)}}</td><td>${{fmtPct(r.pct)}}</td><td>${{fmtNumber(r.startShares)}}</td><td>${{fmtNumber(r.endShares)}}</td><td>${{r.etfCount}}</td></tr>`).join("");
+    return `<h3>${{title}}</h3><table class="styled-table"><thead><tr><th>股票代碼</th><th>股票名稱</th><th>總股數變動</th><th>總持股變動幅度(%)</th><th>起始總股數</th><th>最新總股數</th><th>出現ETF數</th></tr></thead><tbody>${{body}}</tbody></table>`;
+}}
+function renderRange() {{
+    const startDate = document.getElementById("startDate").value;
+    const endDate = document.getElementById("endDate").value;
+    const rows = buildRows(startDate, endDate);
+    const inc = rows.filter(r => r.change > 0).sort((a, b) => b.change - a.change).slice(0, 20);
+    const dec = rows.filter(r => r.change < 0).sort((a, b) => a.change - b.change).slice(0, 20);
+    document.getElementById("rangeSubtitle").textContent = "比較期間：" + fmtDate(startDate) + " vs " + fmtDate(endDate);
+    document.getElementById("rangeOutput").innerHTML = tableHtml("[增] 區間增持 TOP 20", inc) + tableHtml("[減] 區間減持 TOP 20", dec);
+}}
+function initSelectors() {{
+    ["startDate", "endDate"].forEach(id => {{
+        const select = document.getElementById(id);
+        availableDates.forEach(d => {{
+            const opt = document.createElement("option");
+            opt.value = d;
+            opt.textContent = fmtDate(d);
+            select.appendChild(opt);
+        }});
+    }});
+    document.getElementById("startDate").value = defaultStart;
+    document.getElementById("endDate").value = defaultEnd;
+    renderRange();
+}}
+initSelectors();
+</script>
+"""
+    html += page_tail()
+    with open("range/index.html", "w", encoding="utf-8") as f:
+        f.write(html)
+    print("[Done] 已產生自訂區間頁")
+
+def generate_weekly_pages(available_dates):
+    if len(available_dates) < 2:
+        return
+    weeks = {}
+    for d in available_dates:
+        iso_year, iso_week, _ = datetime.strptime(d, "%Y%m%d").isocalendar()
+        key = f"{iso_year}W{iso_week:02d}"
+        weeks.setdefault(key, []).append(d)
+    week_rows = []
+    for key in sorted(weeks):
+        dates = sorted(weeks[key])
+        start_date, end_date = dates[0], dates[-1]
+        year = key[:4]
+        week_rows.append({
+            'key': key,
+            'start': start_date,
+            'end': end_date,
+            'href': f"weekly/{year}/index_{key}.html"
+        })
+    if not week_rows:
+        return
+    os.makedirs("weekly", exist_ok=True)
+    for row in week_rows:
+        key = row['key']
+        start_date = row['start']
+        end_date = row['end']
+        out_dir = f"weekly/{key[:4]}"
+        os.makedirs(out_dir, exist_ok=True)
+        html = render_change_report(
+            "每週歷史資料",
+            f"週別：{key}｜區間：{format_date(start_date)} vs {format_date(end_date)}",
+            start_date,
+            end_date,
+            depth=2,
+            active="weekly",
+            include_details=False,
+            extra_controls=render_week_select(week_rows, key, depth=2)
+        )
+        with open(f"{out_dir}/index_{key}.html", "w", encoding="utf-8") as f:
+            f.write(html)
+    latest = week_rows[-1]
+    latest_html = render_change_report(
+        "每週歷史資料",
+        f"週別：{latest['key']}｜區間：{format_date(latest['start'])} vs {format_date(latest['end'])}",
+        latest['start'],
+        latest['end'],
+        depth=1,
+        active="weekly",
+        include_details=False,
+        extra_controls=render_week_select(week_rows, latest['key'], depth=1)
+    )
+    with open("weekly/index.html", "w", encoding="utf-8") as f:
+        f.write(latest_html)
+    print("[Done] 已產生每週歷史頁")
+
+def generate_range_page(available_dates):
+    os.makedirs("range", exist_ok=True)
+    records = []
+    for d in available_dates:
+        df = read_history(d)
+        for row in df[['Stock_Code', 'Stock_Name', 'Weight', 'Shares', 'ETF']].itertuples(index=False):
+            records.append({
+                'date': d,
+                'code': str(row.Stock_Code),
+                'name': str(row.Stock_Name),
+                'weight': float(row.Weight),
+                'shares': float(row.Shares),
+                'etf': str(row.ETF)
+            })
+    default_start = available_dates[-2] if len(available_dates) > 1 else available_dates[-1]
+    default_end = available_dates[-1]
+    html = page_head("自訂區間")
+    html += "<h1>自訂區間</h1>\n"
+    html += nav_html("../", active="range")
+    html += """
+<div class="control-panel">
+    <label for="startDate">起始日期</label>
+    <select id="startDate"></select>
+    <label for="endDate">結束日期</label>
+    <select id="endDate"></select>
+    <button onclick="renderRange()">更新</button>
+</div>
+<div class="date-subtitle" id="rangeSubtitle"></div>
+<div id="rangeOutput"></div>
+"""
+    script = r"""
+<script>
+const historyRecords = __DATA__;
+const availableDates = __DATES__;
+const targetEtfs = __ETFS__;
+const defaultStart = "__START__";
+const defaultEnd = "__END__";
+
+function fmtDate(d) {
+    return d.slice(0, 4) + "-" + d.slice(4, 6) + "-" + d.slice(6, 8);
+}
+function fmtNumber(v) {
+    return Math.round(Number(v || 0)).toLocaleString("en-US");
+}
+function fmtSignedNumber(v) {
+    const n = Math.round(Number(v || 0));
+    if (n === 0) return "0";
+    return (n > 0 ? "+" : "") + n.toLocaleString("en-US");
+}
+function fmtPct(v) {
+    if (v === Infinity) return "新建倉";
+    if (v === -100) return "清倉";
+    return (v >= 0 ? "+" : "") + Number(v || 0).toFixed(2) + "%";
+}
+function pct(startShares, endShares) {
+    if (startShares === 0 && endShares > 0) return Infinity;
+    if (startShares > 0 && endShares === 0) return -100;
+    if (startShares === 0 && endShares === 0) return 0;
+    return (endShares - startShares) / startShares * 100;
+}
+function recordsByDate(date, etf) {
+    return historyRecords.filter(r => r.date === date && (!etf || r.etf === etf));
+}
+function aggregate(date, etf) {
+    const map = new Map();
+    recordsByDate(date, etf).forEach(r => {
+        const key = r.code + "||" + r.name;
+        if (!map.has(key)) map.set(key, { code: r.code, name: r.name, shares: 0, weight: 0, etfs: new Set() });
+        const item = map.get(key);
+        item.shares += Number(r.shares || 0);
+        item.weight += Number(r.weight || 0);
+        item.etfs.add(r.etf);
+    });
+    return map;
+}
+function buildOverallRows(startDate, endDate) {
+    const start = aggregate(startDate);
+    const end = aggregate(endDate);
+    const keys = new Set([...start.keys(), ...end.keys()]);
+    return Array.from(keys).map(key => {
+        const parts = key.split("||");
+        const s = start.get(key) || { code: parts[0], name: parts[1], shares: 0, etfs: new Set() };
+        const e = end.get(key) || { code: parts[0], name: parts[1], shares: 0, etfs: new Set() };
+        const etfs = new Set([...s.etfs, ...e.etfs]);
+        const change = e.shares - s.shares;
+        return { code: e.code || s.code, name: e.name || s.name, change, pct: pct(s.shares, e.shares), startShares: s.shares, endShares: e.shares, etfCount: etfs.size };
+    }).filter(r => r.change !== 0);
+}
+function buildEtfRows(startDate, endDate, etf) {
+    const start = aggregate(startDate, etf);
+    const end = aggregate(endDate, etf);
+    const keys = new Set([...start.keys(), ...end.keys()]);
+    return Array.from(keys).map(key => {
+        const parts = key.split("||");
+        const s = start.get(key) || { code: parts[0], name: parts[1], shares: 0, weight: 0 };
+        const e = end.get(key) || { code: parts[0], name: parts[1], shares: 0, weight: 0 };
+        const change = e.shares - s.shares;
+        const weightChange = e.weight - s.weight;
+        return { code: e.code || s.code, name: e.name || s.name, change, pct: pct(s.shares, e.shares), startShares: s.shares, endShares: e.shares, weightChange, endWeight: e.weight };
+    }).filter(r => r.change !== 0);
+}
+function overallTable(title, rows) {
+    if (!rows.length) return `<h3>${title}</h3><p class='empty-msg'>無資料</p>`;
+    const body = rows.map(r => `<tr><td>${r.code}</td><td>${r.name}</td><td>${fmtNumber(r.change)}</td><td>${fmtPct(r.pct)}</td><td>${fmtNumber(r.startShares)}</td><td>${fmtNumber(r.endShares)}</td><td>${r.etfCount}</td></tr>`).join("");
+    return `<h3>${title}</h3><table class="styled-table"><thead><tr><th>股票代碼</th><th>股票名稱</th><th>總股數變動</th><th>總持股變動幅度(%)</th><th>起始總股數</th><th>最新總股數</th><th>出現ETF數</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function etfVolumeTable(title, rows) {
+    if (!rows.length) return `<h4>${title}</h4><p class='empty-msg'>無紀錄</p>`;
+    const body = rows.map(r => `<tr><td>${r.code}</td><td>${r.name}</td><td>${fmtSignedNumber(r.change)}</td><td>${fmtPct(r.pct)}</td><td>${fmtPct(r.weightChange)}</td><td>${fmtNumber(r.endShares)}</td><td>${Number(r.endWeight || 0).toFixed(2)}%</td></tr>`).join("");
+    return `<h4>${title}</h4><table class="styled-table"><thead><tr><th>股票代碼</th><th>股票名稱</th><th>股數變動</th><th>股數變動幅度</th><th>權重變動(%)</th><th>最新股數</th><th>最新權重(%)</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function etfPctTable(title, rows) {
+    if (!rows.length) return `<h4>${title}</h4><p class='empty-msg'>無紀錄</p>`;
+    const body = rows.map(r => `<tr><td>${r.code}</td><td>${r.name}</td><td>${fmtSignedNumber(r.change)}</td><td>${fmtPct(r.pct)}</td><td>${fmtPct(r.weightChange)}</td><td>${fmtNumber(r.endShares)}</td><td>${Number(r.endWeight || 0).toFixed(2)}%</td></tr>`).join("");
+    return `<h4>${title}</h4><table class="styled-table"><thead><tr><th>股票代碼</th><th>股票名稱</th><th>股數變動</th><th>股數變動幅度</th><th>權重變動(%)</th><th>最新股數</th><th>最新權重(%)</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function renderOverall(rows) {
+    const inc = rows.filter(r => r.change > 0).sort((a, b) => b.change - a.change).slice(0, 5);
+    const dec = rows.filter(r => r.change < 0).sort((a, b) => a.change - b.change).slice(0, 5);
+    const incPct = rows.filter(r => r.pct > 0).sort((a, b) => b.pct - a.pct).slice(0, 5);
+    const decPct = rows.filter(r => r.pct < 0).sort((a, b) => a.pct - b.pct).slice(0, 5);
+    return `<h2>區塊一：總體市場 TOP 5 增減持股</h2>
+    <div class="tab-container" id="overall-tabs">
+      <div><button class="tab-btn active" onclick="switchTab('overall-tabs', 'tab-vol', this)">依股數增減 (量體)</button><button class="tab-btn" onclick="switchTab('overall-tabs', 'tab-pct', this)">依變動幅度 (意圖)</button></div>
+      <div class="tab-content tab-vol active">${overallTable("[增] 總體資金增持 TOP 5 (量體)", inc)}${overallTable("[減] 總體資金減持 TOP 5 (量體)", dec)}</div>
+      <div class="tab-content tab-pct">${overallTable("[增] 總體資金增持幅度 TOP 5 (意圖)", incPct)}${overallTable("[減] 總體資金減持幅度 TOP 5 (意圖)", decPct)}</div>
+    </div>`;
+}
+function renderEtfBlocks(startDate, endDate) {
+    let html = "<h2>區塊二：各檔 ETF 獨立的 TOP 5 增減持股</h2>";
+    targetEtfs.forEach(etf => {
+        const rows = buildEtfRows(startDate, endDate, etf);
+        const inc = rows.filter(r => r.change > 0).sort((a, b) => b.change - a.change).slice(0, 5);
+        const dec = rows.filter(r => r.change < 0).sort((a, b) => a.change - b.change).slice(0, 5);
+        const incPct = rows.filter(r => r.pct > 0).sort((a, b) => b.pct - a.pct).slice(0, 5);
+        const decPct = rows.filter(r => r.pct < 0).sort((a, b) => a.pct - b.pct).slice(0, 5);
+        html += `<h3>[${etf}] 持股變動排行榜</h3><div class="tab-container" id="range-etf-${etf}">
+          <div><button class="tab-btn active" onclick="switchTab('range-etf-${etf}', 'tab-vol', this)">依股數增減 (量體)</button><button class="tab-btn" onclick="switchTab('range-etf-${etf}', 'tab-pct', this)">依變動幅度 (意圖)</button></div>
+          <div class="tab-content tab-vol active">${etfVolumeTable("[增] 增持最多 TOP 5 (量體)", inc)}${etfVolumeTable("[減] 減持最多 TOP 5 (量體)", dec)}</div>
+          <div class="tab-content tab-pct">${etfPctTable("[增] 增持幅度 TOP 5 (意圖)", incPct)}${etfPctTable("[減] 減持幅度 TOP 5 (意圖)", decPct)}</div>
+        </div>`;
+    });
+    return html;
+}
+function renderRange() {
+    const startDate = document.getElementById("startDate").value;
+    const endDate = document.getElementById("endDate").value;
+    document.getElementById("rangeSubtitle").textContent = "比較期間：" + fmtDate(startDate) + " vs " + fmtDate(endDate);
+    const overall = buildOverallRows(startDate, endDate);
+    document.getElementById("rangeOutput").innerHTML = renderOverall(overall) + renderEtfBlocks(startDate, endDate);
+}
+function initSelectors() {
+    ["startDate", "endDate"].forEach(id => {
+        const select = document.getElementById(id);
+        availableDates.forEach(d => {
+            const opt = document.createElement("option");
+            opt.value = d;
+            opt.textContent = fmtDate(d);
+            select.appendChild(opt);
+        });
+    });
+    document.getElementById("startDate").value = defaultStart;
+    document.getElementById("endDate").value = defaultEnd;
+    renderRange();
+}
+initSelectors();
+</script>
+"""
+    script = script.replace("__DATA__", json.dumps(records, ensure_ascii=False))
+    script = script.replace("__DATES__", json.dumps(available_dates, ensure_ascii=False))
+    script = script.replace("__ETFS__", json.dumps(TARGET_ETFS, ensure_ascii=False))
+    script = script.replace("__START__", default_start)
+    script = script.replace("__END__", default_end)
+    html += script
+    html += page_tail()
+    with open("range/index.html", "w", encoding="utf-8") as f:
+        f.write(html)
+    print("[Done] 已產生自訂區間頁")
+
+def parse_money_number(value):
+    if pd.isna(value):
+        return 0.0
+    text = str(value).replace(",", "").replace("%", "").strip()
+    match = __import__("re").search(r"-?\d+(?:\.\d+)?", text)
+    return float(match.group(0)) if match else 0.0
+
+def fetch_etf_meta(etf_code, today_str):
+    target_dir = os.path.join("data", etf_code)
+    files = glob.glob(os.path.join(target_dir, f"{today_str}.*"))
+    if not files:
+        return None
+    file_path = files[0]
+    rows = []
+    try:
+        if file_path.endswith(".csv"):
+            try:
+                df_raw = pd.read_csv(file_path, encoding="utf-8-sig", header=None, names=range(8), engine="python")
+            except Exception:
+                df_raw = pd.read_csv(file_path, encoding="cp950", header=None, names=range(8), engine="python")
+            rows = df_raw.head(40).values.tolist()
+        else:
+            engine_type = "openpyxl" if file_path.endswith(".xlsx") else "xlrd"
+            excel = pd.ExcelFile(file_path, engine=engine_type)
+            for sheet_name in excel.sheet_names[:2]:
+                df_raw = pd.read_excel(file_path, sheet_name=sheet_name, header=None, engine=engine_type)
+                rows.extend(df_raw.head(40).values.tolist())
+    except Exception as e:
+        print(f"[Warning] 無法解析 {etf_code} 基金規模資訊: {e}")
+        return None
+
+    net_asset = 0.0
+    nav = 0.0
+    units = 0.0
+    data_date = ""
+    for i, row in enumerate(rows):
+        cells = ["" if pd.isna(x) else str(x).strip() for x in row]
+        joined = " ".join(cells)
+        if not data_date and ("資料日期" in joined or "日期:" in joined or "/" in joined):
+            match = __import__("re").search(r"(\d{4}/\d{2}/\d{2}|\d{3}/\d{2}/\d{2}|\d{4}-\d{2}-\d{2})", joined)
+            if match:
+                data_date = match.group(1)
+        label = cells[0]
+        value = next((c for c in cells[1:] if c), "")
+        if "基金資產淨值" in label and not value and i + 1 < len(rows):
+            value = str(rows[i + 1][0])
+        if "基金在外流通單位數" in label and not value and i + 1 < len(rows):
+            value = str(rows[i + 1][0])
+        if "基金每單位淨值" in label and not value and i + 1 < len(rows):
+            value = str(rows[i + 1][0])
+        if ("淨資產" in label or "資產總淨值" in label or "基金淨資產價值" in label) and "每" not in label:
+            net_asset = parse_money_number(value)
+        elif "每單位淨值" in label or "每受益權單位淨資產價值" in label:
+            nav = parse_money_number(value)
+        elif "流通在外單位數" in label or "在外流通單位數" in label or "已發行受益權單位總數" in label:
+            units = parse_money_number(value)
+
+    if not net_asset and nav and units:
+        net_asset = nav * units
+    if not (net_asset or nav or units):
+        return None
+    return {
+        "ETF": etf_code,
+        "File_Date": today_str,
+        "Data_Date": data_date,
+        "Net_Asset": net_asset,
+        "NAV": nav,
+        "Units": units,
+    }
+
+def empty_fund_meta_df():
+    return pd.DataFrame(columns=["ETF", "File_Date", "Data_Date", "Net_Asset", "NAV", "Units"])
+
+def read_fund_meta(date_str):
+    path = f"history/fund_meta_{date_str}.csv"
+    if not date_str or not os.path.exists(path):
+        return empty_fund_meta_df()
+    df = pd.read_csv(path, dtype={"ETF": str, "File_Date": str, "Data_Date": str})
+    for col in ["Net_Asset", "NAV", "Units"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+    return df
+
+def rebuild_fund_meta_history(available_dates):
+    os.makedirs("history", exist_ok=True)
+    for d in available_dates:
+        meta_rows = []
+        for etf in TARGET_ETFS:
+            meta = fetch_etf_meta(etf, d)
+            if meta:
+                meta_rows.append(meta)
+        if meta_rows:
+            pd.DataFrame(meta_rows).to_csv(f"history/fund_meta_{d}.csv", index=False, encoding="utf-8-sig")
+
+def add_position_value(df, meta):
+    df = df.copy()
+    if df.empty:
+        df["Position_Value"] = []
+        return df
+    if meta.empty:
+        df["Net_Asset"] = 0.0
+    else:
+        df = df.merge(meta[["ETF", "Net_Asset"]], on="ETF", how="left")
+        df["Net_Asset"] = pd.to_numeric(df["Net_Asset"], errors="coerce").fillna(0)
+    df["Position_Value"] = df["Net_Asset"] * pd.to_numeric(df["Weight"], errors="coerce").fillna(0) / 100.0
+    return df
+
+def build_total_share_changes(df_start, df_end, start_date=None, end_date=None):
+    start_meta = read_fund_meta(start_date) if start_date else empty_fund_meta_df()
+    end_meta = read_fund_meta(end_date) if end_date else empty_fund_meta_df()
+    start_total_asset = pd.to_numeric(start_meta["Net_Asset"], errors="coerce").fillna(0).sum() if not start_meta.empty else 0.0
+    end_total_asset = pd.to_numeric(end_meta["Net_Asset"], errors="coerce").fillna(0).sum() if not end_meta.empty else 0.0
+    df_start = add_position_value(df_start, start_meta)
+    df_end = add_position_value(df_end, end_meta)
+    key_cols = ["Stock_Code", "Stock_Name"]
+    if df_start.empty:
+        start = pd.DataFrame(columns=key_cols + ["Start_Shares", "Start_Position_Value", "Start_ETF_Count"])
+    else:
+        start = df_start.groupby(key_cols, dropna=False).agg(
+            Start_Shares=("Shares", "sum"),
+            Start_Position_Value=("Position_Value", "sum"),
+            Start_ETF_Count=("ETF", "nunique")
+        ).reset_index()
+    if df_end.empty:
+        end = pd.DataFrame(columns=key_cols + ["End_Shares", "End_Position_Value", "End_ETF_Count"])
+    else:
+        end = df_end.groupby(key_cols, dropna=False).agg(
+            End_Shares=("Shares", "sum"),
+            End_Position_Value=("Position_Value", "sum"),
+            End_ETF_Count=("ETF", "nunique")
+        ).reset_index()
+    overall = pd.merge(end, start, on=key_cols, how="outer")
+    for col in ["Start_Shares", "End_Shares", "Start_Position_Value", "End_Position_Value", "Start_ETF_Count", "End_ETF_Count"]:
+        overall[col] = pd.to_numeric(overall[col], errors="coerce").fillna(0)
+    overall["Total_Shares_Change"] = overall["End_Shares"] - overall["Start_Shares"]
+    overall["Total_Position_Change"] = overall["End_Position_Value"] - overall["Start_Position_Value"]
+    overall["Start_Position_Weight"] = overall["Start_Position_Value"] / start_total_asset * 100.0 if start_total_asset else 0.0
+    overall["End_Position_Weight"] = overall["End_Position_Value"] / end_total_asset * 100.0 if end_total_asset else 0.0
+    overall["Total_Position_Weight_Change"] = overall["End_Position_Weight"] - overall["Start_Position_Weight"]
+    overall["ETF_Count"] = overall[["Start_ETF_Count", "End_ETF_Count"]].max(axis=1).astype(int)
+    return overall
+
+def render_total_table(df):
+    if df.empty:
+        return "<p class='empty-msg'>無持股紀錄</p>\n"
+    df_disp = df[["Stock_Code", "Stock_Name", "Total_Shares_Change", "Total_Position_Change", "Total_Position_Weight_Change", "End_Position_Weight", "Start_Position_Value", "End_Position_Value", "ETF_Count"]].copy()
+    df_disp.columns = ["股票代碼", "股票名稱", "總股數變動", "總資金部位變動", "總資金占比變動(百分點)", "最新總資金占比(%)", "起始總資金部位", "最新總資金部位", "出現ETF數"]
+    for col in ["總股數變動", "總資金部位變動", "起始總資金部位", "最新總資金部位", "出現ETF數"]:
+        df_disp[col] = df_disp[col].apply(format_number)
+    df_disp["總資金占比變動(百分點)"] = df_disp["總資金占比變動(百分點)"].apply(format_pct)
+    df_disp["最新總資金占比(%)"] = df_disp["最新總資金占比(%)"].apply(lambda x: f"{float(x):.2f}%")
+    return df_disp.to_html(index=False, classes="styled-table", escape=False)
+
+def render_overall_block(overall, container_id="overall-tabs"):
+    html = "<h2>區塊一：總體市場 TOP 5 增減持股</h2>\n"
+    if overall.empty:
+        return html + "<p class='empty-msg'>沒有可比較的資料</p>\n"
+    overall_inc, overall_dec = get_top_changes(overall, top_n=5, sort_by="Total_Shares_Change")
+    overall_inc_pct, overall_dec_pct = get_top_changes(overall, top_n=5, sort_by="Total_Position_Weight_Change")
+    html += f"""
+    <div class="tab-container" id="{container_id}">
+        <div>
+            <button class="tab-btn active" onclick="switchTab('{container_id}', 'tab-vol', this)">依股數增減 (量體)</button>
+            <button class="tab-btn" onclick="switchTab('{container_id}', 'tab-pct', this)">依總資金占比變動 (意圖)</button>
+        </div>
+        <div class="tab-content tab-vol active">
+    """
+    html += "<h3>[增] 總體股數增持 TOP 5 (量體)</h3>\n"
+    html += render_total_table(overall_inc) if not overall_inc.empty else "<p class='empty-msg'>無增持紀錄</p>\n"
+    html += "<h3>[減] 總體股數減持 TOP 5 (量體)</h3>\n"
+    html += render_total_table(overall_dec) if not overall_dec.empty else "<p class='empty-msg'>無減持紀錄</p>\n"
+    html += "</div>\n<div class=\"tab-content tab-pct\">\n"
+    html += "<h3>[增] 總資金占比增加 TOP 5 (意圖)</h3>\n"
+    html += render_total_table(overall_inc_pct) if not overall_inc_pct.empty else "<p class='empty-msg'>無增持紀錄</p>\n"
+    html += "<h3>[減] 總資金占比減少 TOP 5 (意圖)</h3>\n"
+    html += render_total_table(overall_dec_pct) if not overall_dec_pct.empty else "<p class='empty-msg'>無減持紀錄</p>\n"
+    html += "</div>\n</div>\n"
+    return html
+
+def render_change_report(title, subtitle, start_date, end_date, depth, active, include_details=False, available_dates=None, extra_controls=""):
+    prefix = relative_prefix(depth)
+    df_start = read_history(start_date) if start_date else empty_history_df()
+    df_end = read_history(end_date)
+    is_first_run = not start_date
+    overall = build_total_share_changes(df_start, df_end, start_date=start_date, end_date=end_date)
+    etf_results = build_etf_results(df_start, df_end, is_first_run=is_first_run)
+    html = page_head(title)
+    html += f"<h1>{title}</h1>\n"
+    html += nav_html(prefix, active=active)
+    html += extra_controls
+    if available_dates is not None:
+        html += render_date_select(available_dates, end_date, depth)
+    html += f"<div class='date-subtitle'>{subtitle}</div>\n"
+    if is_first_run:
+        html += "<div class='warning-msg'>第一筆資料只能建立基準，尚無前期可比較。</div>\n"
+    html += render_overall_block(overall)
+    html += render_etf_blocks(etf_results)
+    if include_details:
+        html += render_detail_blocks(etf_results)
+    html += page_tail()
+    return html
+
+def generate_range_page(available_dates):
+    os.makedirs("range", exist_ok=True)
+    records = []
+    meta_by_date = {}
+    fund_totals = {}
+    for d in available_dates:
+        meta_by_date[d] = {
+            row.ETF: float(row.Net_Asset)
+            for row in read_fund_meta(d)[["ETF", "Net_Asset"]].itertuples(index=False)
+        }
+        fund_totals[d] = sum(meta_by_date[d].values())
+        df = read_history(d)
+        for row in df[["Stock_Code", "Stock_Name", "Weight", "Shares", "ETF"]].itertuples(index=False):
+            net_asset = meta_by_date[d].get(str(row.ETF), 0.0)
+            records.append({
+                "date": d,
+                "code": str(row.Stock_Code),
+                "name": str(row.Stock_Name),
+                "weight": float(row.Weight),
+                "shares": float(row.Shares),
+                "position": net_asset * float(row.Weight) / 100.0,
+                "etf": str(row.ETF)
+            })
+    default_start = available_dates[-2] if len(available_dates) > 1 else available_dates[-1]
+    default_end = available_dates[-1]
+    html = page_head("自訂區間")
+    html += "<h1>自訂區間</h1>\n"
+    html += nav_html("../", active="range")
+    html += """
+<div class="control-panel">
+    <label for="startDate">起始日期</label>
+    <select id="startDate"></select>
+    <label for="endDate">結束日期</label>
+    <select id="endDate"></select>
+    <button onclick="renderRange()">產生</button>
+</div>
+<div class="date-subtitle" id="rangeSubtitle"></div>
+<div id="rangeOutput"></div>
+"""
+    script = r"""
+<script>
+const historyRecords = __DATA__;
+const availableDates = __DATES__;
+const targetEtfs = __ETFS__;
+const fundTotals = __FUND_TOTALS__;
+const defaultStart = "__START__";
+const defaultEnd = "__END__";
+
+function fmtDate(d) { return d.slice(0, 4) + "-" + d.slice(4, 6) + "-" + d.slice(6, 8); }
+function fmtNumber(v) { return Math.round(Number(v || 0)).toLocaleString("en-US"); }
+function fmtSignedNumber(v) {
+    const n = Math.round(Number(v || 0));
+    if (n === 0) return "0";
+    return (n > 0 ? "+" : "") + n.toLocaleString("en-US");
+}
+function fmtPct(v) {
+    if (v === Infinity) return "新建倉";
+    if (v === -100) return "清倉";
+    return (v >= 0 ? "+" : "") + Number(v || 0).toFixed(2) + "%";
+}
+function pct(startValue, endValue) {
+    if (startValue === 0 && endValue > 0) return Infinity;
+    if (startValue > 0 && endValue === 0) return -100;
+    if (startValue === 0 && endValue === 0) return 0;
+    return (endValue - startValue) / startValue * 100;
+}
+function recordsByDate(date, etf) {
+    return historyRecords.filter(r => r.date === date && (!etf || r.etf === etf));
+}
+function aggregate(date, etf) {
+    const map = new Map();
+    recordsByDate(date, etf).forEach(r => {
+        const key = r.code + "||" + r.name;
+        if (!map.has(key)) map.set(key, { code: r.code, name: r.name, shares: 0, weight: 0, position: 0, etfs: new Set() });
+        const item = map.get(key);
+        item.shares += Number(r.shares || 0);
+        item.weight += Number(r.weight || 0);
+        item.position += Number(r.position || 0);
+        item.etfs.add(r.etf);
+    });
+    return map;
+}
+function buildOverallRows(startDate, endDate) {
+    const start = aggregate(startDate);
+    const end = aggregate(endDate);
+    const startTotal = Number(fundTotals[startDate] || 0);
+    const endTotal = Number(fundTotals[endDate] || 0);
+    const keys = new Set([...start.keys(), ...end.keys()]);
+    return Array.from(keys).map(key => {
+        const parts = key.split("||");
+        const s = start.get(key) || { code: parts[0], name: parts[1], shares: 0, position: 0, etfs: new Set() };
+        const e = end.get(key) || { code: parts[0], name: parts[1], shares: 0, position: 0, etfs: new Set() };
+        const etfs = new Set([...s.etfs, ...e.etfs]);
+        const startWeight = startTotal ? s.position / startTotal * 100 : 0;
+        const endWeight = endTotal ? e.position / endTotal * 100 : 0;
+        return {
+            code: e.code || s.code,
+            name: e.name || s.name,
+            change: e.shares - s.shares,
+            positionChange: e.position - s.position,
+            pct: endWeight - startWeight,
+            endWeight,
+            startPosition: s.position,
+            endPosition: e.position,
+            etfCount: etfs.size
+        };
+    }).filter(r => r.change !== 0 || r.positionChange !== 0);
+}
+function buildEtfRows(startDate, endDate, etf) {
+    const start = aggregate(startDate, etf);
+    const end = aggregate(endDate, etf);
+    const keys = new Set([...start.keys(), ...end.keys()]);
+    return Array.from(keys).map(key => {
+        const parts = key.split("||");
+        const s = start.get(key) || { code: parts[0], name: parts[1], shares: 0, weight: 0 };
+        const e = end.get(key) || { code: parts[0], name: parts[1], shares: 0, weight: 0 };
+        const change = e.shares - s.shares;
+        const weightChange = e.weight - s.weight;
+        return { code: e.code || s.code, name: e.name || s.name, change, pct: pct(s.shares, e.shares), startShares: s.shares, endShares: e.shares, weightChange, endWeight: e.weight };
+    }).filter(r => r.change !== 0);
+}
+function overallTable(title, rows) {
+    if (!rows.length) return `<h3>${title}</h3><p class='empty-msg'>無持股紀錄</p>`;
+    const body = rows.map(r => `<tr><td>${r.code}</td><td>${r.name}</td><td>${fmtSignedNumber(r.change)}</td><td>${fmtSignedNumber(r.positionChange)}</td><td>${fmtPct(r.pct)}</td><td>${Number(r.endWeight || 0).toFixed(2)}%</td><td>${fmtNumber(r.startPosition)}</td><td>${fmtNumber(r.endPosition)}</td><td>${r.etfCount}</td></tr>`).join("");
+    return `<h3>${title}</h3><table class="styled-table"><thead><tr><th>股票代碼</th><th>股票名稱</th><th>總股數變動</th><th>總資金部位變動</th><th>總資金占比變動(百分點)</th><th>最新總資金占比(%)</th><th>起始總資金部位</th><th>最新總資金部位</th><th>出現ETF數</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function etfVolumeTable(title, rows) {
+    if (!rows.length) return `<h4>${title}</h4><p class='empty-msg'>無持股紀錄</p>`;
+    const body = rows.map(r => `<tr><td>${r.code}</td><td>${r.name}</td><td>${fmtSignedNumber(r.change)}</td><td>${fmtPct(r.pct)}</td><td>${fmtPct(r.weightChange)}</td><td>${fmtNumber(r.endShares)}</td><td>${Number(r.endWeight || 0).toFixed(2)}%</td></tr>`).join("");
+    return `<h4>${title}</h4><table class="styled-table"><thead><tr><th>股票代碼</th><th>股票名稱</th><th>股數變動</th><th>股數變動幅度</th><th>權重變動(%)</th><th>最新股數</th><th>最新權重(%)</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function etfPctTable(title, rows) {
+    if (!rows.length) return `<h4>${title}</h4><p class='empty-msg'>無持股紀錄</p>`;
+    const body = rows.map(r => `<tr><td>${r.code}</td><td>${r.name}</td><td>${fmtSignedNumber(r.change)}</td><td>${fmtPct(r.pct)}</td><td>${fmtPct(r.weightChange)}</td><td>${fmtNumber(r.endShares)}</td><td>${Number(r.endWeight || 0).toFixed(2)}%</td></tr>`).join("");
+    return `<h4>${title}</h4><table class="styled-table"><thead><tr><th>股票代碼</th><th>股票名稱</th><th>股數變動</th><th>股數變動幅度</th><th>權重變動(%)</th><th>最新股數</th><th>最新權重(%)</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function renderOverall(rows) {
+    const inc = rows.filter(r => r.change > 0).sort((a, b) => b.change - a.change).slice(0, 5);
+    const dec = rows.filter(r => r.change < 0).sort((a, b) => a.change - b.change).slice(0, 5);
+    const incPct = rows.filter(r => r.pct > 0).sort((a, b) => b.pct - a.pct).slice(0, 5);
+    const decPct = rows.filter(r => r.pct < 0).sort((a, b) => a.pct - b.pct).slice(0, 5);
+    return `<h2>區塊一：總體市場 TOP 5 增減持股</h2>
+    <div class="tab-container" id="overall-tabs">
+      <div><button class="tab-btn active" onclick="switchTab('overall-tabs', 'tab-vol', this)">依股數增減 (量體)</button><button class="tab-btn" onclick="switchTab('overall-tabs', 'tab-pct', this)">依總資金占比變動 (意圖)</button></div>
+      <div class="tab-content tab-vol active">${overallTable("[增] 總體股數增持 TOP 5 (量體)", inc)}${overallTable("[減] 總體股數減持 TOP 5 (量體)", dec)}</div>
+      <div class="tab-content tab-pct">${overallTable("[增] 總資金占比增加 TOP 5 (意圖)", incPct)}${overallTable("[減] 總資金占比減少 TOP 5 (意圖)", decPct)}</div>
+    </div>`;
+}
+function renderEtfBlocks(startDate, endDate) {
+    let html = "<h2>區塊二：各檔 ETF 獨立的 TOP 5 增減持股</h2>";
+    targetEtfs.forEach(etf => {
+        const rows = buildEtfRows(startDate, endDate, etf);
+        const inc = rows.filter(r => r.change > 0).sort((a, b) => b.change - a.change).slice(0, 5);
+        const dec = rows.filter(r => r.change < 0).sort((a, b) => a.change - b.change).slice(0, 5);
+        const incPct = rows.filter(r => r.pct > 0).sort((a, b) => b.pct - a.pct).slice(0, 5);
+        const decPct = rows.filter(r => r.pct < 0).sort((a, b) => a.pct - b.pct).slice(0, 5);
+        html += `<h3>[${etf}] 持股變動排行榜</h3><div class="tab-container" id="range-etf-${etf}">
+          <div><button class="tab-btn active" onclick="switchTab('range-etf-${etf}', 'tab-vol', this)">依股數增減 (量體)</button><button class="tab-btn" onclick="switchTab('range-etf-${etf}', 'tab-pct', this)">依變動幅度 (意圖)</button></div>
+          <div class="tab-content tab-vol active">${etfVolumeTable("[增] 增持最多 TOP 5 (量體)", inc)}${etfVolumeTable("[減] 減持最多 TOP 5 (量體)", dec)}</div>
+          <div class="tab-content tab-pct">${etfPctTable("[增] 增持幅度 TOP 5 (意圖)", incPct)}${etfPctTable("[減] 減持幅度 TOP 5 (意圖)", decPct)}</div>
+        </div>`;
+    });
+    return html;
+}
+function renderRange() {
+    const startDate = document.getElementById("startDate").value;
+    const endDate = document.getElementById("endDate").value;
+    document.getElementById("rangeSubtitle").textContent = "區間：" + fmtDate(startDate) + " vs " + fmtDate(endDate);
+    const overall = buildOverallRows(startDate, endDate);
+    document.getElementById("rangeOutput").innerHTML = renderOverall(overall) + renderEtfBlocks(startDate, endDate);
+}
+function initSelectors() {
+    ["startDate", "endDate"].forEach(id => {
+        const select = document.getElementById(id);
+        availableDates.forEach(d => {
+            const opt = document.createElement("option");
+            opt.value = d;
+            opt.textContent = fmtDate(d);
+            select.appendChild(opt);
+        });
+    });
+    document.getElementById("startDate").value = defaultStart;
+    document.getElementById("endDate").value = defaultEnd;
+    renderRange();
+}
+initSelectors();
+</script>
+"""
+    script = script.replace("__DATA__", json.dumps(records, ensure_ascii=False))
+    script = script.replace("__DATES__", json.dumps(available_dates, ensure_ascii=False))
+    script = script.replace("__ETFS__", json.dumps(TARGET_ETFS, ensure_ascii=False))
+    script = script.replace("__FUND_TOTALS__", json.dumps(fund_totals, ensure_ascii=False))
+    script = script.replace("__START__", default_start)
+    script = script.replace("__END__", default_end)
+    html += script
+    html += page_tail()
+    with open("range/index.html", "w", encoding="utf-8") as f:
+        f.write(html)
+    print("[Done] 已產生自訂區間頁")
+
 def main():
     today = datetime.now()
     
@@ -666,8 +1805,12 @@ def main():
     # 2. 讀取並彙整今日檔案
     print(f"\n[Info] 正在彙整今日 ({today.strftime('%Y-%m-%d')}) 最新持股資料...")
     today_data_list = []
+    today_meta_list = []
     for etf in TARGET_ETFS:
         try:
+            meta = fetch_etf_meta(etf, today_str)
+            if meta:
+                today_meta_list.append(meta)
             df = fetch_etf_holdings(etf, today_str)
             if not df.empty:
                 df['ETF'] = etf
@@ -679,6 +1822,7 @@ def main():
         df_today_all = pd.concat(today_data_list, ignore_index=True)
     else:
         df_today_all = pd.DataFrame(columns=['Stock_Code', 'Stock_Name', 'Weight', 'Shares', 'ETF'])
+    df_today_meta = pd.DataFrame(today_meta_list) if today_meta_list else empty_fund_meta_df()
         
     # 檢查是否與前一個交易日完全相同 (過濾假日或資料未更新的情形)
     is_data_changed = True
@@ -729,6 +1873,8 @@ def main():
     # 將今日資料存檔
     if not df_today_all.empty and is_data_changed:
         df_today_all.to_csv(history_today_file, index=False, encoding='utf-8-sig')
+        if not df_today_meta.empty:
+            df_today_meta.to_csv(f"history/fund_meta_{today_str}.csv", index=False, encoding='utf-8-sig')
         print(f"[Save] 今日持股資料已儲存至 {history_today_file}\n")
     elif not is_data_changed:
         pass # 上方已印出提示
@@ -755,6 +1901,8 @@ def main():
     latest_date = available_dates[-1]
     latest_prev_date = available_dates[-2] if len(available_dates) > 1 else None
     generate_dashboard(latest_date, latest_prev_date, available_dates, is_root=True)
+    generate_weekly_pages(available_dates)
+    generate_range_page(available_dates)
     print(f"\n[Done] 所有歷史網頁均已更新，預設入口為 index.html (目前最新為 {latest_date})\n")
 
 if __name__ == "__main__":
