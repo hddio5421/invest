@@ -1165,7 +1165,9 @@ def generate_weekly_pages(available_dates):
     if not week_rows:
         return
     os.makedirs("weekly", exist_ok=True)
-    for row in week_rows:
+    
+    recent_week_rows = week_rows[-3:]
+    for row in recent_week_rows:
         key = row['key']
         start_date = row['start']
         end_date = row['end']
@@ -1893,8 +1895,10 @@ def main():
         return
         
     print(f"[Info] 找到 {len(available_dates)} 天的歷史資料，開始產生對應的 dashboard...")
-    for i, target_date_str in enumerate(available_dates):
-        prev_date_str = available_dates[i-1] if i > 0 else None
+    recent_dates = available_dates[-7:]
+    for target_date_str in recent_dates:
+        idx = available_dates.index(target_date_str)
+        prev_date_str = available_dates[idx-1] if idx > 0 else None
         generate_dashboard(target_date_str, prev_date_str, available_dates, is_root=False)
         
     # 將最新的那一天產生一份為預設的 index.html
