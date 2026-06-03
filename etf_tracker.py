@@ -8,11 +8,13 @@ import shutil
 from playwright.sync_api import sync_playwright
 
 # 設定目標 ETF
-TARGET_ETFS = ['00981A', '00988A', '00990A', '00992A', '00982A', '00991A']
+TARGET_ETFS = ['00981A', '00403A', '00988A', '00990A', '00992A', '00982A', '00991A']
+SOURCE_DATE_EXCLUDED_ETFS = {'00988A', '00990A'}
 
 # 對應的真實網址字典
 URL_MAPPING = {
     '00981A': 'https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=49YTW',
+    '00403A': 'https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=63YTW',
     '00988A': 'https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=61YTW',
     '00990A': 'https://www.yuantaetfs.com/product/detail/00990A/ratio',
     '00992A': 'https://www.capitalfund.com.tw/etf/product/detail/500/portfolio',
@@ -722,6 +724,8 @@ def build_etf_results(df_start, df_end, is_first_run=False):
         df_tod = df_end[df_end['ETF'] == etf].copy() if not df_end.empty else empty_history_df()
         if df_tod.empty and df_yest.empty:
             continue
+        if df_tod.empty:
+            continue
         etf_is_first_run = is_first_run or df_yest.empty
         changes = calculate_changes(df_yest, df_tod, etf_is_first_run)
         if changes.empty:
@@ -1386,6 +1390,21 @@ def parse_money_number(value):
     match = __import__("re").search(r"-?\d+(?:\.\d+)?", text)
     return float(match.group(0)) if match else 0.0
 
+def normalize_source_date(value):
+    if pd.isna(value):
+        return None
+    text = str(value).strip()
+    match = __import__("re").search(r"(\d{2,4})[/-](\d{1,2})[/-](\d{1,2})", text)
+    if not match:
+        return None
+    year, month, day = [int(x) for x in match.groups()]
+    if year < 1911:
+        year += 1911
+    try:
+        return datetime(year, month, day).strftime("%Y%m%d")
+    except ValueError:
+        return None
+
 def fetch_etf_meta(etf_code, today_str):
     target_dir = os.path.join("data", etf_code)
     files = glob.glob(os.path.join(target_dir, f"{today_str}.*"))
@@ -1485,9 +1504,26 @@ def add_position_value(df, meta):
     df["Position_Value"] = df["Net_Asset"] * pd.to_numeric(df["Weight"], errors="coerce").fillna(0) / 100.0
     return df
 
+def filter_common_etfs(df_start, df_end, start_meta, end_meta):
+    if df_start.empty or df_end.empty:
+        return df_start, df_end, start_meta, end_meta
+    start_etfs = set(df_start["ETF"].dropna().astype(str))
+    end_etfs = set(df_end["ETF"].dropna().astype(str))
+    common_etfs = start_etfs & end_etfs
+    if not common_etfs:
+        return empty_history_df(), empty_history_df(), empty_fund_meta_df(), empty_fund_meta_df()
+    df_start = df_start[df_start["ETF"].astype(str).isin(common_etfs)].copy()
+    df_end = df_end[df_end["ETF"].astype(str).isin(common_etfs)].copy()
+    if not start_meta.empty:
+        start_meta = start_meta[start_meta["ETF"].astype(str).isin(common_etfs)].copy()
+    if not end_meta.empty:
+        end_meta = end_meta[end_meta["ETF"].astype(str).isin(common_etfs)].copy()
+    return df_start, df_end, start_meta, end_meta
+
 def build_total_share_changes(df_start, df_end, start_date=None, end_date=None):
     start_meta = read_fund_meta(start_date) if start_date else empty_fund_meta_df()
     end_meta = read_fund_meta(end_date) if end_date else empty_fund_meta_df()
+    df_start, df_end, start_meta, end_meta = filter_common_etfs(df_start, df_end, start_meta, end_meta)
     start_total_asset = pd.to_numeric(start_meta["Net_Asset"], errors="coerce").fillna(0).sum() if not start_meta.empty else 0.0
     end_total_asset = pd.to_numeric(end_meta["Net_Asset"], errors="coerce").fillna(0).sum() if not end_meta.empty else 0.0
     df_start = add_position_value(df_start, start_meta)
@@ -1585,12 +1621,14 @@ def generate_range_page(available_dates):
     records = []
     meta_by_date = {}
     fund_totals = {}
+    fund_assets = {}
     for d in available_dates:
         meta_by_date[d] = {
             row.ETF: float(row.Net_Asset)
             for row in read_fund_meta(d)[["ETF", "Net_Asset"]].itertuples(index=False)
         }
         fund_totals[d] = sum(meta_by_date[d].values())
+        fund_assets[d] = meta_by_date[d]
         df = read_history(d)
         for row in df[["Stock_Code", "Stock_Name", "Weight", "Shares", "ETF"]].itertuples(index=False):
             net_asset = meta_by_date[d].get(str(row.ETF), 0.0)
@@ -1625,6 +1663,7 @@ const historyRecords = __DATA__;
 const availableDates = __DATES__;
 const targetEtfs = __ETFS__;
 const fundTotals = __FUND_TOTALS__;
+const fundAssets = __FUND_ASSETS__;
 const defaultStart = "__START__";
 const defaultEnd = "__END__";
 
@@ -1646,12 +1685,24 @@ function pct(startValue, endValue) {
     if (startValue === 0 && endValue === 0) return 0;
     return (endValue - startValue) / startValue * 100;
 }
-function recordsByDate(date, etf) {
-    return historyRecords.filter(r => r.date === date && (!etf || r.etf === etf));
+function etfsByDate(date) {
+    return new Set(historyRecords.filter(r => r.date === date).map(r => r.etf));
 }
-function aggregate(date, etf) {
+function commonEtfs(startDate, endDate) {
+    const start = etfsByDate(startDate);
+    const end = etfsByDate(endDate);
+    return new Set([...start].filter(etf => end.has(etf)));
+}
+function comparableFundTotal(date, allowedEtfs) {
+    const assets = fundAssets[date] || {};
+    return [...allowedEtfs].reduce((total, etf) => total + Number(assets[etf] || 0), 0);
+}
+function recordsByDate(date, etf, allowedEtfs) {
+    return historyRecords.filter(r => r.date === date && (!etf || r.etf === etf) && (!allowedEtfs || allowedEtfs.has(r.etf)));
+}
+function aggregate(date, etf, allowedEtfs) {
     const map = new Map();
-    recordsByDate(date, etf).forEach(r => {
+    recordsByDate(date, etf, allowedEtfs).forEach(r => {
         const key = r.code + "||" + r.name;
         if (!map.has(key)) map.set(key, { code: r.code, name: r.name, shares: 0, weight: 0, position: 0, etfs: new Set() });
         const item = map.get(key);
@@ -1663,10 +1714,11 @@ function aggregate(date, etf) {
     return map;
 }
 function buildOverallRows(startDate, endDate) {
-    const start = aggregate(startDate);
-    const end = aggregate(endDate);
-    const startTotal = Number(fundTotals[startDate] || 0);
-    const endTotal = Number(fundTotals[endDate] || 0);
+    const allowedEtfs = commonEtfs(startDate, endDate);
+    const start = aggregate(startDate, null, allowedEtfs);
+    const end = aggregate(endDate, null, allowedEtfs);
+    const startTotal = comparableFundTotal(startDate, allowedEtfs);
+    const endTotal = comparableFundTotal(endDate, allowedEtfs);
     const keys = new Set([...start.keys(), ...end.keys()]);
     return Array.from(keys).map(key => {
         const parts = key.split("||");
@@ -1691,6 +1743,7 @@ function buildOverallRows(startDate, endDate) {
 function buildEtfRows(startDate, endDate, etf) {
     const start = aggregate(startDate, etf);
     const end = aggregate(endDate, etf);
+    if (start.size > 0 && end.size === 0) return [];
     const keys = new Set([...start.keys(), ...end.keys()]);
     return Array.from(keys).map(key => {
         const parts = key.split("||");
@@ -1772,6 +1825,7 @@ initSelectors();
     script = script.replace("__DATES__", json.dumps(available_dates, ensure_ascii=False))
     script = script.replace("__ETFS__", json.dumps(TARGET_ETFS, ensure_ascii=False))
     script = script.replace("__FUND_TOTALS__", json.dumps(fund_totals, ensure_ascii=False))
+    script = script.replace("__FUND_ASSETS__", json.dumps(fund_assets, ensure_ascii=False))
     script = script.replace("__START__", default_start)
     script = script.replace("__END__", default_end)
     html += script
@@ -1779,6 +1833,42 @@ initSelectors();
     with open("range/index.html", "w", encoding="utf-8") as f:
         f.write(html)
     print("[Done] 已產生自訂區間頁")
+
+def upsert_etf_history(date_str, etf, df, meta):
+    history_file = f"history/history_{date_str}.csv"
+    meta_file = f"history/fund_meta_{date_str}.csv"
+    if os.path.exists(history_file):
+        history_df = pd.read_csv(history_file, dtype={"Stock_Code": str})
+        history_df = history_df[history_df["ETF"].astype(str) != etf].copy()
+    else:
+        history_df = empty_history_df()
+    history_df = pd.concat([history_df, df], ignore_index=True)
+    history_df = history_df.sort_values(["ETF", "Stock_Code", "Stock_Name"], kind="stable")
+    history_df.to_csv(history_file, index=False, encoding="utf-8-sig")
+
+    if meta:
+        meta = dict(meta)
+        meta["File_Date"] = date_str
+        if os.path.exists(meta_file):
+            meta_df = pd.read_csv(meta_file)
+            meta_df = meta_df[meta_df["ETF"].astype(str) != etf].copy()
+        else:
+            meta_df = empty_fund_meta_df()
+        meta_df = pd.concat([meta_df, pd.DataFrame([meta])], ignore_index=True)
+        meta_df = meta_df.sort_values(["ETF"], kind="stable")
+        meta_df.to_csv(meta_file, index=False, encoding="utf-8-sig")
+
+def move_download_to_effective_date(etf, today_str, effective_date):
+    target_dir = os.path.join("data", etf)
+    today_files = glob.glob(os.path.join(target_dir, f"{today_str}.*"))
+    for source_path in today_files:
+        ext = os.path.splitext(source_path)[1]
+        dest_path = os.path.join(target_dir, f"{effective_date}{ext}")
+        shutil.copy2(source_path, dest_path)
+        try:
+            os.remove(source_path)
+        except OSError:
+            pass
 
 def main():
     today = datetime.now()
@@ -1811,12 +1901,24 @@ def main():
     for etf in TARGET_ETFS:
         try:
             meta = fetch_etf_meta(etf, today_str)
-            if meta:
-                today_meta_list.append(meta)
             df = fetch_etf_holdings(etf, today_str)
             if not df.empty:
                 df['ETF'] = etf
+                effective_date = today_str
+                if meta and etf not in SOURCE_DATE_EXCLUDED_ETFS:
+                    source_date = normalize_source_date(meta.get("Data_Date"))
+                    if source_date and source_date < today_str:
+                        effective_date = source_date
+                if effective_date != today_str:
+                    upsert_etf_history(effective_date, etf, df, meta)
+                    move_download_to_effective_date(etf, today_str, effective_date)
+                    print(f"[Info] {etf} 表內資料日期為 {effective_date}，已歸檔到 history/history_{effective_date}.csv")
+                    continue
                 today_data_list.append(df)
+                if meta:
+                    today_meta_list.append(meta)
+            elif meta:
+                today_meta_list.append(meta)
         except Exception as e:
             print(f"[Error] 處理 {etf} 時發生錯誤: {e}")
             
