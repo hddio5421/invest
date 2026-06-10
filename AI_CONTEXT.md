@@ -117,3 +117,14 @@
 - 新增缺檔防呆：若比較結束日沒有某檔 ETF 的資料，總體資金池與各 ETF 排行均跳過該 ETF，避免晚揭露資料被誤判為整檔清倉。
 - 除 `00988A`、`00990A` 外，若檔案能解析出表內資料日期，程式會依表內資料日期歸檔；這可避免下載標籤為 `20260603`、但檔案內仍是 `20260602` 的資料被誤放到 6/3。
 - `00988A`、`00990A` 因海外成分股揭露節奏可能落後台灣交易日，維持依下載標籤歸檔，不套用表內日期回填。
+
+## 2026-06-10 主要修改紀錄
+
+- **修正跨 ETF 彙總重複計算問題**：不同 ETF 對同一檔股票的名稱寫法可能不一致（例如「國巨\*」vs「國巨股份」），導致區塊一的跨 ETF 彙總出現同一股票代碼重複兩筆的問題。
+- 修改範圍：
+  - `calculate_changes()`：merge key 從 `['Stock_Code', 'Stock_Name']` 改為只用 `Stock_Code`，兩個 DataFrame 各自先依代碼合併，名稱欄位（`Stock_Name`）以今日優先、昨日補充。
+  - `build_total_share_changes()`（舊版，L694 附近）：`groupby` 改為只用 `Stock_Code`，`Stock_Name` 取 `first`，merge 也改為單一 key。
+  - `build_total_share_changes()`（含資金部位版本，L1523 附近）：同上邏輯，結束日 `Stock_Name` 優先，起始日補充。
+  - `generate_range_page()` 內嵌 JavaScript 的 `aggregate()` 函數：map key 從 `r.code + "||" + r.name` 改為只用 `r.code`，name 取第一次遇到的值。
+- 修改後效果：無論各 ETF 如何拼寫股票名稱，只要股票代碼相同，都會彙整為同一筆，不再重複出現。
+

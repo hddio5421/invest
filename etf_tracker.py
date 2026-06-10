@@ -213,25 +213,44 @@ def fetch_etf_holdings(etf_code, today_str):
 def calculate_changes(df_yesterday, df_today, is_first_run=False):
     """
     計算昨日與今日持股權重與股數差異
+    以 Stock_Code 為唯一鍵做 merge，避免同代碼不同名稱被分成兩筆。
+    Stock_Name 優先採用今日名稱，若今日無則用昨日名稱。
     """
     if df_today.empty and df_yesterday.empty:
         return pd.DataFrame()
-        
+
+    # 先在各自 DataFrame 內依 Stock_Code 合併（同一 ETF 內通常唯一，此步為防呆）
+    def agg_by_code(df, suffix):
+        if df.empty:
+            return df
+        return df.groupby('Stock_Code', dropna=False).agg(
+            Stock_Name=('Stock_Name', 'first'),
+            Weight=('Weight', 'sum'),
+            Shares=('Shares', 'sum')
+        ).reset_index()
+
+    df_today_agg = agg_by_code(df_today, 'Today')
+    df_yesterday_agg = agg_by_code(df_yesterday, 'Yesterday')
+
     merged = pd.merge(
-        df_today, 
-        df_yesterday, 
-        on=['Stock_Code', 'Stock_Name'], 
-        how='outer', 
+        df_today_agg,
+        df_yesterday_agg,
+        on='Stock_Code',
+        how='outer',
         suffixes=('_Today', '_Yesterday')
     )
-    
+
+    # Stock_Name：今日優先，否則用昨日
+    merged['Stock_Name'] = merged['Stock_Name_Today'].combine_first(merged['Stock_Name_Yesterday'])
+    merged.drop(columns=['Stock_Name_Today', 'Stock_Name_Yesterday'], inplace=True, errors='ignore')
+
     # 填補空值
     for col in ['Weight_Today', 'Weight_Yesterday', 'Shares_Today', 'Shares_Yesterday']:
         if col in merged.columns:
-            merged[col] = merged[col].fillna(0)
+            merged[col] = pd.to_numeric(merged[col], errors='coerce').fillna(0)
         else:
             merged[col] = 0
-            
+
     if is_first_run:
         merged['Weight_Change'] = 0.0
         merged['Shares_Change'] = 0.0
@@ -242,7 +261,7 @@ def calculate_changes(df_yesterday, df_today, is_first_run=False):
     else:
         merged['Weight_Change'] = merged['Weight_Today'] - merged['Weight_Yesterday']
         merged['Shares_Change'] = merged['Shares_Today'] - merged['Shares_Yesterday']
-        
+
         def calc_pct(row):
             sy = row['Shares_Yesterday']
             st = row['Shares_Today']
@@ -254,13 +273,13 @@ def calculate_changes(df_yesterday, df_today, is_first_run=False):
                 return 0.0
             else:
                 return (st - sy) / sy * 100.0
-                
+
         merged['Shares_Change_Pct'] = merged.apply(calc_pct, axis=1)
-        
+
         merged['Weight_Change_Display'] = merged['Weight_Change'].apply(lambda x: f"{x:+.2f}%" if x != 0 else "0.00%")
         merged['Shares_Change_Display'] = merged['Shares_Change'].apply(lambda x: f"{x:+,.0f}" if x != 0 else "0")
         merged['Yesterday_Shares_Display'] = merged['Shares_Yesterday'].apply(lambda x: f"{x:,.0f}")
-        
+
     return merged
 
 def get_top_changes(df_changes, top_n=3, sort_by='Shares_Change'):
@@ -692,22 +711,29 @@ def calc_change_pct(start_shares, end_shares):
     return (end_shares - start_shares) / start_shares * 100.0
 
 def build_total_share_changes(df_start, df_end):
-    key_cols = ['Stock_Code', 'Stock_Name']
+    # 以 Stock_Code 為唯一鍵彙整，Stock_Name 取 first，避免同代碼不同名稱重複
     if df_start.empty:
-        start = pd.DataFrame(columns=key_cols + ['Start_Shares', 'Start_ETF_Count'])
+        start = pd.DataFrame(columns=['Stock_Code', 'Stock_Name', 'Start_Shares', 'Start_ETF_Count'])
     else:
-        start = df_start.groupby(key_cols, dropna=False).agg(
+        start = df_start.groupby('Stock_Code', dropna=False).agg(
+            Stock_Name=('Stock_Name', 'first'),
             Start_Shares=('Shares', 'sum'),
             Start_ETF_Count=('ETF', 'nunique')
         ).reset_index()
     if df_end.empty:
-        end = pd.DataFrame(columns=key_cols + ['End_Shares', 'End_ETF_Count'])
+        end = pd.DataFrame(columns=['Stock_Code', 'Stock_Name', 'End_Shares', 'End_ETF_Count'])
     else:
-        end = df_end.groupby(key_cols, dropna=False).agg(
+        end = df_end.groupby('Stock_Code', dropna=False).agg(
+            Stock_Name=('Stock_Name', 'first'),
             End_Shares=('Shares', 'sum'),
             End_ETF_Count=('ETF', 'nunique')
         ).reset_index()
-    overall = pd.merge(end, start, on=key_cols, how='outer')
+    overall = pd.merge(
+        end, start, on='Stock_Code', how='outer', suffixes=('', '_start')
+    )
+    # Stock_Name：結束日優先，否則用起始日
+    overall['Stock_Name'] = overall['Stock_Name'].combine_first(overall.get('Stock_Name_start'))
+    overall.drop(columns=['Stock_Name_start'], inplace=True, errors='ignore')
     for col in ['Start_Shares', 'End_Shares', 'Start_ETF_Count', 'End_ETF_Count']:
         overall[col] = pd.to_numeric(overall[col], errors='coerce').fillna(0)
     overall['Total_Shares_Change'] = overall['End_Shares'] - overall['Start_Shares']
@@ -1528,24 +1554,29 @@ def build_total_share_changes(df_start, df_end, start_date=None, end_date=None):
     end_total_asset = pd.to_numeric(end_meta["Net_Asset"], errors="coerce").fillna(0).sum() if not end_meta.empty else 0.0
     df_start = add_position_value(df_start, start_meta)
     df_end = add_position_value(df_end, end_meta)
-    key_cols = ["Stock_Code", "Stock_Name"]
+    # 以 Stock_Code 為唯一鍵彙整，Stock_Name 取 first，避免同代碼不同名稱重複計算
     if df_start.empty:
-        start = pd.DataFrame(columns=key_cols + ["Start_Shares", "Start_Position_Value", "Start_ETF_Count"])
+        start = pd.DataFrame(columns=["Stock_Code", "Stock_Name", "Start_Shares", "Start_Position_Value", "Start_ETF_Count"])
     else:
-        start = df_start.groupby(key_cols, dropna=False).agg(
+        start = df_start.groupby("Stock_Code", dropna=False).agg(
+            Stock_Name=("Stock_Name", "first"),
             Start_Shares=("Shares", "sum"),
             Start_Position_Value=("Position_Value", "sum"),
             Start_ETF_Count=("ETF", "nunique")
         ).reset_index()
     if df_end.empty:
-        end = pd.DataFrame(columns=key_cols + ["End_Shares", "End_Position_Value", "End_ETF_Count"])
+        end = pd.DataFrame(columns=["Stock_Code", "Stock_Name", "End_Shares", "End_Position_Value", "End_ETF_Count"])
     else:
-        end = df_end.groupby(key_cols, dropna=False).agg(
+        end = df_end.groupby("Stock_Code", dropna=False).agg(
+            Stock_Name=("Stock_Name", "first"),
             End_Shares=("Shares", "sum"),
             End_Position_Value=("Position_Value", "sum"),
             End_ETF_Count=("ETF", "nunique")
         ).reset_index()
-    overall = pd.merge(end, start, on=key_cols, how="outer")
+    overall = pd.merge(end, start, on="Stock_Code", how="outer", suffixes=("", "_start"))
+    # Stock_Name：結束日優先，否則用起始日
+    overall["Stock_Name"] = overall["Stock_Name"].combine_first(overall.get("Stock_Name_start"))
+    overall.drop(columns=["Stock_Name_start"], inplace=True, errors="ignore")
     for col in ["Start_Shares", "End_Shares", "Start_Position_Value", "End_Position_Value", "Start_ETF_Count", "End_ETF_Count"]:
         overall[col] = pd.to_numeric(overall[col], errors="coerce").fillna(0)
     overall["Total_Shares_Change"] = overall["End_Shares"] - overall["Start_Shares"]
@@ -1703,7 +1734,8 @@ function recordsByDate(date, etf, allowedEtfs) {
 function aggregate(date, etf, allowedEtfs) {
     const map = new Map();
     recordsByDate(date, etf, allowedEtfs).forEach(r => {
-        const key = r.code + "||" + r.name;
+        // 以股票代碼為唯一鍵，name 取第一次遇到的值，避免同代碼不同名稱重複計算
+        const key = r.code;
         if (!map.has(key)) map.set(key, { code: r.code, name: r.name, shares: 0, weight: 0, position: 0, etfs: new Set() });
         const item = map.get(key);
         item.shares += Number(r.shares || 0);
