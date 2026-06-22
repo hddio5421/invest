@@ -769,6 +769,7 @@ def nav_html(prefix="", active="daily"):
     links = [
         ("daily", "每日總覽", f"{prefix}index.html"),
         ("weekly", "每週歷史", f"{prefix}weekly/index.html"),
+        ("weekly_tw", "每週歷史(僅台股)", f"{prefix}weekly_tw/index.html"),
         ("range", "自訂區間", f"{prefix}range/index.html"),
     ]
     return "<nav class='site-nav'>" + "".join(
@@ -968,10 +969,15 @@ def render_detail_blocks(etf_results):
         html += "  </div>\n</details>\n"
     return html
 
-def render_change_report(title, subtitle, start_date, end_date, depth, active, include_details=False, available_dates=None, extra_controls=""):
+def render_change_report(title, subtitle, start_date, end_date, depth, active, include_details=False, available_dates=None, extra_controls="", tw_only=False):
     prefix = relative_prefix(depth)
     df_start = read_history(start_date) if start_date else empty_history_df()
     df_end = read_history(end_date)
+    
+    if tw_only:
+        df_start = df_start[df_start['Stock_Code'].astype(str).str.isdigit()]
+        df_end = df_end[df_end['Stock_Code'].astype(str).str.isdigit()]
+        
     is_first_run = not start_date
     overall = build_total_share_changes(df_start, df_end)
     etf_results = build_etf_results(df_start, df_end, is_first_run=is_first_run)
@@ -1229,6 +1235,65 @@ def generate_weekly_pages(available_dates):
     with open("weekly/index.html", "w", encoding="utf-8") as f:
         f.write(latest_html)
     print("[Done] 已產生每週歷史頁")
+
+def generate_tw_weekly_pages(available_dates):
+    if len(available_dates) < 2:
+        return
+    weeks = {}
+    for d in available_dates:
+        iso_year, iso_week, _ = datetime.strptime(d, "%Y%m%d").isocalendar()
+        key = f"{iso_year}W{iso_week:02d}"
+        weeks.setdefault(key, []).append(d)
+    week_rows = []
+    for key in sorted(weeks):
+        dates = sorted(weeks[key])
+        start_date, end_date = dates[0], dates[-1]
+        year = key[:4]
+        week_rows.append({
+            'key': key,
+            'start': start_date,
+            'end': end_date,
+            'href': f"weekly_tw/{year}/index_{key}.html"
+        })
+    if not week_rows:
+        return
+    os.makedirs("weekly_tw", exist_ok=True)
+    
+    recent_week_rows = week_rows[-3:]
+    for row in recent_week_rows:
+        key = row['key']
+        start_date = row['start']
+        end_date = row['end']
+        out_dir = f"weekly_tw/{key[:4]}"
+        os.makedirs(out_dir, exist_ok=True)
+        html = render_change_report(
+            "每週歷史資料(僅台股)",
+            f"週別：{key}｜區間：{format_date(start_date)} vs {format_date(end_date)}",
+            start_date,
+            end_date,
+            depth=2,
+            active="weekly_tw",
+            include_details=False,
+            extra_controls=render_week_select(week_rows, key, depth=2),
+            tw_only=True
+        )
+        with open(f"{out_dir}/index_{key}.html", "w", encoding="utf-8") as f:
+            f.write(html)
+    latest = week_rows[-1]
+    latest_html = render_change_report(
+        "每週歷史資料(僅台股)",
+        f"週別：{latest['key']}｜區間：{format_date(latest['start'])} vs {format_date(latest['end'])}",
+        latest['start'],
+        latest['end'],
+        depth=1,
+        active="weekly_tw",
+        include_details=False,
+        extra_controls=render_week_select(week_rows, latest['key'], depth=1),
+        tw_only=True
+    )
+    with open("weekly_tw/index.html", "w", encoding="utf-8") as f:
+        f.write(latest_html)
+    print("[Done] 已產生每週歷史(僅台股)頁")
 
 def generate_range_page(available_dates):
     os.makedirs("range", exist_ok=True)
@@ -1624,10 +1689,15 @@ def render_overall_block(overall, container_id="overall-tabs"):
     html += "</div>\n</div>\n"
     return html
 
-def render_change_report(title, subtitle, start_date, end_date, depth, active, include_details=False, available_dates=None, extra_controls=""):
+def render_change_report(title, subtitle, start_date, end_date, depth, active, include_details=False, available_dates=None, extra_controls="", tw_only=False):
     prefix = relative_prefix(depth)
     df_start = read_history(start_date) if start_date else empty_history_df()
     df_end = read_history(end_date)
+    
+    if tw_only:
+        df_start = df_start[df_start['Stock_Code'].astype(str).str.isdigit()]
+        df_end = df_end[df_end['Stock_Code'].astype(str).str.isdigit()]
+        
     is_first_run = not start_date
     overall = build_total_share_changes(df_start, df_end, start_date=start_date, end_date=end_date)
     etf_results = build_etf_results(df_start, df_end, is_first_run=is_first_run)
@@ -2022,8 +2092,36 @@ def main():
     history_files = glob.glob('history/history_*.csv')
     
     # 從檔名解析出所有的日期，並排序 (例如: 'history_20260421.csv' -> '20260421')
-    available_dates = sorted([os.path.basename(f).replace('history_', '').replace('.csv', '') for f in history_files])
+    raw_dates = sorted([os.path.basename(f).replace('history_', '').replace('.csv', '') for f in history_files])
     
+    # 過濾出有效的日期：至少包含一檔「純台股且有內部日期檢核」的 ETF (避免因海外休假不一致產生無意義的日期)
+    strict_tw_etfs = {'00403A', '00981A', '00991A'}
+    available_dates = []
+    for d in raw_dates:
+        meta_file = f"history/fund_meta_{d}.csv"
+        found = False
+        if os.path.exists(meta_file):
+            try:
+                df_meta = pd.read_csv(meta_file)
+                if any(e in df_meta['ETF'].values for e in strict_tw_etfs):
+                    found = True
+            except Exception:
+                pass
+        
+        if not found:
+            try:
+                df_hist = pd.read_csv(f"history/history_{d}.csv", usecols=['ETF'])
+                if any(e in df_hist['ETF'].values for e in strict_tw_etfs):
+                    found = True
+            except Exception:
+                pass
+                
+        if found:
+            available_dates.append(d)
+    
+    if len(raw_dates) != len(available_dates):
+        excluded = sorted(list(set(raw_dates) - set(available_dates)))
+        print(f"[Info] 依純台股標準，已排除無效日期: {excluded}")
     if not available_dates:
         print("[Warning] 目前無任何歷史資料可供產出網頁。")
         return
@@ -2040,6 +2138,7 @@ def main():
     latest_prev_date = available_dates[-2] if len(available_dates) > 1 else None
     generate_dashboard(latest_date, latest_prev_date, available_dates, is_root=True)
     generate_weekly_pages(available_dates)
+    generate_tw_weekly_pages(available_dates)
     generate_range_page(available_dates)
     print(f"\n[Done] 所有歷史網頁均已更新，預設入口為 index.html (目前最新為 {latest_date})\n")
 
