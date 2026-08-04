@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>每週歷史資料(僅台股)</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; color: #333; background-color: #f9f9f9; line-height: 1.6; }
+        h1 { color: #2c3e50; text-align: center; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 10px; }
+        h2 { color: #ffffff; background-color: #2980b9; padding: 10px 20px; border-radius: 5px; margin-top: 50px; font-size: 1.5em; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h3 { color: #2c3e50; border-left: 5px solid #16a085; padding-left: 15px; margin-top: 35px; background-color: #eef7f5; padding: 10px 15px; border-radius: 0 5px 5px 0; }
+        h4 { color: #e67e22; margin-top: 20px; font-size: 1.1em; padding-left: 10px; }
+        .date-subtitle { text-align: center; color: #7f8c8d; font-size: 1.1em; margin-bottom: 20px; font-weight: bold; }
+        .warning-msg { background-color: #f39c12; color: white; padding: 15px; text-align: center; border-radius: 5px; font-size: 1.1em; margin-bottom: 30px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .styled-table { border-collapse: collapse; margin: 15px 0 30px 0; font-size: 0.95em; width: 100%; box-shadow: 0 0 20px rgba(0,0,0,0.05); background-color: white; border-radius: 5px; overflow: hidden; }
+        .styled-table thead tr { background-color: #34495e; color: #ffffff; text-align: right; }
+        .styled-table thead th { padding: 15px; border: 1px solid #ecf0f1; text-align: center; font-weight: 600; letter-spacing: 0.5px; }
+        .styled-table th, .styled-table td { padding: 12px 15px; border: 1px solid #ecf0f1; text-align: right; }
+        .styled-table td:nth-child(1), .styled-table td:nth-child(2) { text-align: left; font-weight: bold; color: #2c3e50; }
+        .styled-table tbody tr { border-bottom: 1px solid #ecf0f1; transition: all 0.2s ease; }
+        .styled-table tbody tr:nth-of-type(even) { background-color: #fcfcfc; }
+        .styled-table tbody tr:hover { background-color: #e8f4f8; transform: scale(1.001); }
+        .empty-msg { color: #7f8c8d; font-style: italic; margin-left: 20px; background-color: #f1f2f6; padding: 10px; border-radius: 4px; display: inline-block; }
+        .tab-btn { background-color: #ecf0f1; border: none; padding: 8px 16px; margin-right: 5px; cursor: pointer; border-radius: 4px 4px 0 0; font-weight: bold; color: #7f8c8d; }
+        .tab-btn.active { background-color: #3498db; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tab-container { margin-bottom: 20px; }
+        .site-nav { display: flex; gap: 8px; justify-content: center; margin: 14px 0 24px; flex-wrap: wrap; }
+        .site-nav a { color: #2c3e50; text-decoration: none; background: #ecf0f1; padding: 8px 14px; border-radius: 4px; font-weight: 700; }
+        .site-nav a.active { color: white; background: #2980b9; }
+        .control-panel { background: white; border: 1px solid #ecf0f1; border-radius: 5px; padding: 14px; margin: 20px 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .control-panel label { font-weight: 700; color: #2c3e50; }
+        .control-panel select, .control-panel button { padding: 6px 10px; border-radius: 4px; border: 1px solid #bdc3c7; font-size: 1em; }
+        .control-panel button { color: white; background: #2980b9; border-color: #2980b9; font-weight: 700; cursor: pointer; }
+    </style>
+    <script>
+    function switchTab(containerId, tabType, btn) {
+        var container = document.getElementById(containerId);
+        var contents = container.getElementsByClassName('tab-content');
+        for (var i = 0; i < contents.length; i++) contents[i].classList.remove('active');
+        var btns = btn.parentElement.getElementsByClassName('tab-btn');
+        for (var j = 0; j < btns.length; j++) btns[j].classList.remove('active');
+        container.querySelector('.' + tabType).classList.add('active');
+        btn.classList.add('active');
+    }
+    </script>
+</head>
+<body>
+<h1>每週歷史資料(僅台股)</h1>
+<nav class='site-nav'><a class='' href='../../index.html'>每日總覽</a><a class='' href='../../weekly/index.html'>每週歷史</a><a class='active' href='../../weekly_tw/index.html'>每週歷史(僅台股)</a><a class='' href='../../range/index.html'>自訂區間</a></nav>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <label for="weekSelect" style="font-size: 1.1em; font-weight: bold; color: #2c3e50;">切換歷史週別：</label>
+        <select id="weekSelect" style="padding: 5px 10px; font-size: 1em; border-radius: 4px; border: 1px solid #bdc3c7;" onchange="window.location.href=this.value">
+            <option value='../../weekly_tw/2026/index_2026W30.html' >2026W30（2026-07-20 ~ 2026-07-24）</option>
+            <option value='../../weekly_tw/2026/index_2026W29.html' >2026W29（2026-07-13 ~ 2026-07-17）</option>
+            <option value='../../weekly_tw/2026/index_2026W28.html' selected>2026W28（2026-07-06 ~ 2026-07-09）</option>
+            <option value='../../weekly_tw/2026/index_2026W27.html' >2026W27（2026-06-29 ~ 2026-07-03）</option>
+            <option value='../../weekly_tw/2026/index_2026W26.html' >2026W26（2026-06-22 ~ 2026-06-26）</option>
+            <option value='../../weekly_tw/2026/index_2026W25.html' >2026W25（2026-06-15 ~ 2026-06-18）</option>
+            <option value='../../weekly_tw/2026/index_2026W24.html' >2026W24（2026-06-08 ~ 2026-06-12）</option>
+            <option value='../../weekly_tw/2026/index_2026W23.html' >2026W23（2026-06-01 ~ 2026-06-05）</option>
+            <option value='../../weekly_tw/2026/index_2026W22.html' >2026W22（2026-05-25 ~ 2026-05-29）</option>
+            <option value='../../weekly_tw/2026/index_2026W21.html' >2026W21（2026-05-18 ~ 2026-05-22）</option>
+            <option value='../../weekly_tw/2026/index_2026W20.html' >2026W20（2026-05-11 ~ 2026-05-15）</option>
+            <option value='../../weekly_tw/2026/index_2026W19.html' >2026W19（2026-05-04 ~ 2026-05-08）</option>
+            <option value='../../weekly_tw/2026/index_2026W18.html' >2026W18（2026-04-27 ~ 2026-04-30）</option>
+            <option value='../../weekly_tw/2026/index_2026W17.html' >2026W17（2026-04-21 ~ 2026-04-24）</option>
+        </select>
+    </div>
+    <div class='date-subtitle'>週別：2026W28｜區間：2026-07-06 vs 2026-07-09</div>
+<h2>區塊一：總體市場 TOP 5 增減持股</h2>
+
+    <div class="tab-container" id="overall-tabs">
+        <div>
+            <button class="tab-btn active" onclick="switchTab('overall-tabs', 'tab-vol', this)">依股數增減 (量體)</button>
+            <button class="tab-btn" onclick="switchTab('overall-tabs', 'tab-pct', this)">依總資金占比變動 (意圖)</button>
+        </div>
+        <div class="tab-content tab-vol active">
+    <h3>[增] 總體股數增持 TOP 5 (量體)</h3>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>總股數變動</th>
+      <th>總資金部位變動</th>
+      <th>總資金占比變動(百分點)</th>
+      <th>最新總資金占比(%)</th>
+      <th>起始總資金部位</th>
+      <th>最新總資金部位</th>
+      <th>出現ETF數</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>3711</td>
+      <td>日月光投控</td>
+      <td>2,983,000</td>
+      <td>1,889,113,752</td>
+      <td>+0.34%</td>
+      <td>2.67%</td>
+      <td>17,030,748,648</td>
+      <td>18,919,862,399</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>3026</td>
+      <td>禾伸堂企</td>
+      <td>1,100,000</td>
+      <td>1,143,809,468</td>
+      <td>+0.17%</td>
+      <td>0.28%</td>
+      <td>866,733,823</td>
+      <td>2,010,543,291</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>1303</td>
+      <td>南亞</td>
+      <td>950,000</td>
+      <td>142,771,001</td>
+      <td>+0.03%</td>
+      <td>0.22%</td>
+      <td>1,402,166,421</td>
+      <td>1,544,937,422</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>8046</td>
+      <td>南電</td>
+      <td>831,000</td>
+      <td>2,715,567,513</td>
+      <td>+0.44%</td>
+      <td>2.23%</td>
+      <td>13,067,850,452</td>
+      <td>15,783,417,965</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>2330</td>
+      <td>台積電</td>
+      <td>587,000</td>
+      <td>17,979,864</td>
+      <td>+0.33%</td>
+      <td>11.27%</td>
+      <td>79,811,069,156</td>
+      <td>79,829,049,020</td>
+      <td>7</td>
+    </tr>
+  </tbody>
+</table><h3>[減] 總體股數減持 TOP 5 (量體)</h3>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>總股數變動</th>
+      <th>總資金部位變動</th>
+      <th>總資金占比變動(百分點)</th>
+      <th>最新總資金占比(%)</th>
+      <th>起始總資金部位</th>
+      <th>最新總資金部位</th>
+      <th>出現ETF數</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>6147</td>
+      <td>頎邦</td>
+      <td>-999,000</td>
+      <td>-212,094,511</td>
+      <td>-0.02%</td>
+      <td>0.26%</td>
+      <td>2,085,831,031</td>
+      <td>1,873,736,520</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>2449</td>
+      <td>京元電子</td>
+      <td>-707,000</td>
+      <td>-364,877,972</td>
+      <td>-0.05%</td>
+      <td>0.12%</td>
+      <td>1,199,176,285</td>
+      <td>834,298,314</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>6196</td>
+      <td>帆宣</td>
+      <td>-558,000</td>
+      <td>-330,443,938</td>
+      <td>-0.04%</td>
+      <td>0.03%</td>
+      <td>574,381,426</td>
+      <td>243,937,488</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>8210</td>
+      <td>勤誠</td>
+      <td>-409,000</td>
+      <td>-795,582,377</td>
+      <td>-0.10%</td>
+      <td>0.38%</td>
+      <td>3,462,199,237</td>
+      <td>2,666,616,860</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>3529</td>
+      <td>力旺</td>
+      <td>-219,000</td>
+      <td>-630,110,717</td>
+      <td>-0.09%</td>
+      <td>0.02%</td>
+      <td>760,210,710</td>
+      <td>130,099,993</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table></div>
+<div class="tab-content tab-pct">
+<h3>[增] 總資金占比增加 TOP 5 (意圖)</h3>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>總股數變動</th>
+      <th>總資金部位變動</th>
+      <th>總資金占比變動(百分點)</th>
+      <th>最新總資金占比(%)</th>
+      <th>起始總資金部位</th>
+      <th>最新總資金部位</th>
+      <th>出現ETF數</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>8046</td>
+      <td>南電</td>
+      <td>831,000</td>
+      <td>2,715,567,513</td>
+      <td>+0.44%</td>
+      <td>2.23%</td>
+      <td>13,067,850,452</td>
+      <td>15,783,417,965</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>6223</td>
+      <td>旺矽</td>
+      <td>101,000</td>
+      <td>1,565,607,589</td>
+      <td>+0.35%</td>
+      <td>4.81%</td>
+      <td>32,471,706,432</td>
+      <td>34,037,314,021</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>3711</td>
+      <td>日月光投控</td>
+      <td>2,983,000</td>
+      <td>1,889,113,752</td>
+      <td>+0.34%</td>
+      <td>2.67%</td>
+      <td>17,030,748,648</td>
+      <td>18,919,862,399</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>2330</td>
+      <td>台積電</td>
+      <td>587,000</td>
+      <td>17,979,864</td>
+      <td>+0.33%</td>
+      <td>11.27%</td>
+      <td>79,811,069,156</td>
+      <td>79,829,049,020</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>2383</td>
+      <td>台光電</td>
+      <td>327,000</td>
+      <td>106,119,310</td>
+      <td>+0.19%</td>
+      <td>6.22%</td>
+      <td>43,945,607,888</td>
+      <td>44,051,727,198</td>
+      <td>7</td>
+    </tr>
+  </tbody>
+</table><h3>[減] 總資金占比減少 TOP 5 (意圖)</h3>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>總股數變動</th>
+      <th>總資金部位變動</th>
+      <th>總資金占比變動(百分點)</th>
+      <th>最新總資金占比(%)</th>
+      <th>起始總資金部位</th>
+      <th>最新總資金部位</th>
+      <th>出現ETF數</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>2327</td>
+      <td>國巨*</td>
+      <td>150,000</td>
+      <td>-4,805,125,091</td>
+      <td>-0.49%</td>
+      <td>5.85%</td>
+      <td>46,275,754,479</td>
+      <td>41,470,629,389</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <td>3017</td>
+      <td>奇鋐</td>
+      <td>0</td>
+      <td>-3,514,307,016</td>
+      <td>-0.38%</td>
+      <td>3.63%</td>
+      <td>29,212,255,629</td>
+      <td>25,697,948,613</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <td>2368</td>
+      <td>金像電</td>
+      <td>0</td>
+      <td>-1,724,688,464</td>
+      <td>-0.19%</td>
+      <td>1.74%</td>
+      <td>14,041,250,677</td>
+      <td>12,316,562,213</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>2303</td>
+      <td>聯電</td>
+      <td>0</td>
+      <td>-1,971,787,132</td>
+      <td>-0.14%</td>
+      <td>4.43%</td>
+      <td>33,332,529,993</td>
+      <td>31,360,742,861</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>2308</td>
+      <td>台達電</td>
+      <td>-179,000</td>
+      <td>-1,291,389,570</td>
+      <td>-0.11%</td>
+      <td>2.19%</td>
+      <td>16,777,226,739</td>
+      <td>15,485,837,169</td>
+      <td>5</td>
+    </tr>
+  </tbody>
+</table></div>
+</div>
+<h2>區塊二：各檔 ETF 獨立的 TOP 5 增減持股</h2>
+<h3>[00981A] 持股變動排行榜</h3>
+
+        <div class="tab-container" id="etf-tabs-00981A">
+            <div>
+                <button class="tab-btn active" onclick="switchTab('etf-tabs-00981A', 'tab-vol', this)">依股數增減 (量體)</button>
+                <button class="tab-btn" onclick="switchTab('etf-tabs-00981A', 'tab-pct', this)">依變動幅度 (意圖)</button>
+            </div>
+            <div class="tab-content tab-vol active">
+        <h4>[增] 增持最多 TOP 5 (量體)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>3711</td>
+      <td>日月光投控</td>
+      <td>2,028,000</td>
+      <td>+15.92%</td>
+      <td>+0.60%</td>
+      <td>14,770,000</td>
+      <td>3.64%</td>
+    </tr>
+    <tr>
+      <td>3037</td>
+      <td>欣興</td>
+      <td>576,000</td>
+      <td>+3.79%</td>
+      <td>+0.14%</td>
+      <td>15,779,000</td>
+      <td>5.03%</td>
+    </tr>
+    <tr>
+      <td>8046</td>
+      <td>南電</td>
+      <td>200,000</td>
+      <td>+2.23%</td>
+      <td>+0.67%</td>
+      <td>9,149,000</td>
+      <td>4.05%</td>
+    </tr>
+    <tr>
+      <td>2383</td>
+      <td>台光電</td>
+      <td>167,000</td>
+      <td>+3.72%</td>
+      <td>+0.35%</td>
+      <td>4,653,000</td>
+      <td>8.97%</td>
+    </tr>
+    <tr>
+      <td>2454</td>
+      <td>聯發科</td>
+      <td>94,000</td>
+      <td>+1.87%</td>
+      <td>+0.03%</td>
+      <td>5,131,000</td>
+      <td>7.33%</td>
+    </tr>
+  </tbody>
+</table><h4>[減] 減持最多 TOP 5 (量體)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>2449</td>
+      <td>京元電子</td>
+      <td>-1,541,000</td>
+      <td>-44.97%</td>
+      <td>-0.21%</td>
+      <td>1,886,000</td>
+      <td>0.21%</td>
+    </tr>
+    <tr>
+      <td>6515</td>
+      <td>穎崴</td>
+      <td>-22,000</td>
+      <td>-9.73%</td>
+      <td>-0.13%</td>
+      <td>204,000</td>
+      <td>0.58%</td>
+    </tr>
+  </tbody>
+</table></div>
+<div class="tab-content tab-pct">
+<h4>[增] 增持幅度 TOP 5 (意圖)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>3711</td>
+      <td>日月光投控</td>
+      <td>2,028,000</td>
+      <td>+15.92%</td>
+      <td>+0.60%</td>
+      <td>14,770,000</td>
+      <td>3.64%</td>
+    </tr>
+    <tr>
+      <td>5274</td>
+      <td>信驊</td>
+      <td>37,900</td>
+      <td>+10.00%</td>
+      <td>-0.10%</td>
+      <td>416,900</td>
+      <td>2.07%</td>
+    </tr>
+    <tr>
+      <td>3037</td>
+      <td>欣興</td>
+      <td>576,000</td>
+      <td>+3.79%</td>
+      <td>+0.14%</td>
+      <td>15,779,000</td>
+      <td>5.03%</td>
+    </tr>
+    <tr>
+      <td>2383</td>
+      <td>台光電</td>
+      <td>167,000</td>
+      <td>+3.72%</td>
+      <td>+0.35%</td>
+      <td>4,653,000</td>
+      <td>8.97%</td>
+    </tr>
+    <tr>
+      <td>6223</td>
+      <td>旺矽</td>
+      <td>61,000</td>
+      <td>+2.56%</td>
+      <td>+0.57%</td>
+      <td>2,443,000</td>
+      <td>6.30%</td>
+    </tr>
+  </tbody>
+</table><h4>[減] 減持幅度 TOP 5 (意圖)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>2449</td>
+      <td>京元電子</td>
+      <td>-1,541,000</td>
+      <td>-44.97%</td>
+      <td>-0.21%</td>
+      <td>1,886,000</td>
+      <td>0.21%</td>
+    </tr>
+    <tr>
+      <td>6515</td>
+      <td>穎崴</td>
+      <td>-22,000</td>
+      <td>-9.73%</td>
+      <td>-0.13%</td>
+      <td>204,000</td>
+      <td>0.58%</td>
+    </tr>
+  </tbody>
+</table></div>
+</div>
+<h3>[00403A] 持股變動排行榜</h3>
+
+        <div class="tab-container" id="etf-tabs-00403A">
+            <div>
+                <button class="tab-btn active" onclick="switchTab('etf-tabs-00403A', 'tab-vol', this)">依股數增減 (量體)</button>
+                <button class="tab-btn" onclick="switchTab('etf-tabs-00403A', 'tab-pct', this)">依變動幅度 (意圖)</button>
+            </div>
+            <div class="tab-content tab-vol active">
+        <h4>[增] 增持最多 TOP 5 (量體)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1303</td>
+      <td>南亞</td>
+      <td>950,000</td>
+      <td>+12.58%</td>
+      <td>+0.12%</td>
+      <td>8,500,000</td>
+      <td>0.95%</td>
+    </tr>
+    <tr>
+      <td>8046</td>
+      <td>南電</td>
+      <td>431,000</td>
+      <td>+54.21%</td>
+      <td>+0.41%</td>
+      <td>1,226,000</td>
+      <td>0.92%</td>
+    </tr>
+    <tr>
+      <td>3711</td>
+      <td>日月光投控</td>
+      <td>300,000</td>
+      <td>+5.36%</td>
+      <td>+0.21%</td>
+      <td>5,900,000</td>
+      <td>2.46%</td>
+    </tr>
+    <tr>
+      <td>6488</td>
+      <td>環球晶</td>
+      <td>152,000</td>
+      <td>+7.60%</td>
+      <td>+0.21%</td>
+      <td>2,152,000</td>
+      <td>1.79%</td>
+    </tr>
+    <tr>
+      <td>2454</td>
+      <td>聯發科</td>
+      <td>110,000</td>
+      <td>+7.38%</td>
+      <td>+0.22%</td>
+      <td>1,600,000</td>
+      <td>3.86%</td>
+    </tr>
+  </tbody>
+</table><h4>[減] 減持最多 TOP 5 (量體)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>2327</td>
+      <td>國巨*</td>
+      <td>-1,050,000</td>
+      <td>-10.45%</td>
+      <td>-1.00%</td>
+      <td>9,000,000</td>
+      <td>4.98%</td>
+    </tr>
+    <tr>
+      <td>6147</td>
+      <td>頎邦</td>
+      <td>-999,000</td>
+      <td>-99.90%</td>
+      <td>-0.13%</td>
+      <td>1,000</td>
+      <td>0.00%</td>
+    </tr>
+    <tr>
+      <td>6196</td>
+      <td>帆宣</td>
+      <td>-558,000</td>
+      <td>-55.80%</td>
+      <td>-0.19%</td>
+      <td>442,000</td>
+      <td>0.15%</td>
+    </tr>
+    <tr>
+      <td>3037</td>
+      <td>欣興</td>
+      <td>-436,000</td>
+      <td>-5.81%</td>
+      <td>-0.27%</td>
+      <td>7,064,000</td>
+      <td>3.80%</td>
+    </tr>
+    <tr>
+      <td>3529</td>
+      <td>力旺</td>
+      <td>-219,000</td>
+      <td>-81.41%</td>
+      <td>-0.37%</td>
+      <td>50,000</td>
+      <td>0.08%</td>
+    </tr>
+  </tbody>
+</table></div>
+<div class="tab-content tab-pct">
+<h4>[增] 增持幅度 TOP 5 (意圖)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>8046</td>
+      <td>南電</td>
+      <td>431,000</td>
+      <td>+54.21%</td>
+      <td>+0.41%</td>
+      <td>1,226,000</td>
+      <td>0.92%</td>
+    </tr>
+    <tr>
+      <td>1303</td>
+      <td>南亞</td>
+      <td>950,000</td>
+      <td>+12.58%</td>
+      <td>+0.12%</td>
+      <td>8,500,000</td>
+      <td>0.95%</td>
+    </tr>
+    <tr>
+      <td>5274</td>
+      <td>信驊</td>
+      <td>4,500</td>
+      <td>+10.00%</td>
+      <td>-0.01%</td>
+      <td>49,500</td>
+      <td>0.42%</td>
+    </tr>
+    <tr>
+      <td>6488</td>
+      <td>環球晶</td>
+      <td>152,000</td>
+      <td>+7.60%</td>
+      <td>+0.21%</td>
+      <td>2,152,000</td>
+      <td>1.79%</td>
+    </tr>
+    <tr>
+      <td>2454</td>
+      <td>聯發科</td>
+      <td>110,000</td>
+      <td>+7.38%</td>
+      <td>+0.22%</td>
+      <td>1,600,000</td>
+      <td>3.86%</td>
+    </tr>
+  </tbody>
+</table><h4>[減] 減持幅度 TOP 5 (意圖)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>6147</td>
+      <td>頎邦</td>
+      <td>-999,000</td>
+      <td>-99.90%</td>
+      <td>-0.13%</td>
+      <td>1,000</td>
+      <td>0.00%</td>
+    </tr>
+    <tr>
+      <td>3529</td>
+      <td>力旺</td>
+      <td>-219,000</td>
+      <td>-81.41%</td>
+      <td>-0.37%</td>
+      <td>50,000</td>
+      <td>0.08%</td>
+    </tr>
+    <tr>
+      <td>6196</td>
+      <td>帆宣</td>
+      <td>-558,000</td>
+      <td>-55.80%</td>
+      <td>-0.19%</td>
+      <td>442,000</td>
+      <td>0.15%</td>
+    </tr>
+    <tr>
+      <td>2327</td>
+      <td>國巨*</td>
+      <td>-1,050,000</td>
+      <td>-10.45%</td>
+      <td>-1.00%</td>
+      <td>9,000,000</td>
+      <td>4.98%</td>
+    </tr>
+    <tr>
+      <td>3037</td>
+      <td>欣興</td>
+      <td>-436,000</td>
+      <td>-5.81%</td>
+      <td>-0.27%</td>
+      <td>7,064,000</td>
+      <td>3.80%</td>
+    </tr>
+  </tbody>
+</table></div>
+</div>
+<h3>[00988A] 持股變動排行榜</h3>
+
+        <div class="tab-container" id="etf-tabs-00988A">
+            <div>
+                <button class="tab-btn active" onclick="switchTab('etf-tabs-00988A', 'tab-vol', this)">依股數增減 (量體)</button>
+                <button class="tab-btn" onclick="switchTab('etf-tabs-00988A', 'tab-pct', this)">依變動幅度 (意圖)</button>
+            </div>
+            <div class="tab-content tab-vol active">
+        <h4>[增] 增持最多 TOP 5 (量體)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>2327</td>
+      <td>國巨*</td>
+      <td>200,000</td>
+      <td>+10.00%</td>
+      <td>-0.19%</td>
+      <td>2,200,000</td>
+      <td>3.27%</td>
+    </tr>
+    <tr>
+      <td>2330</td>
+      <td>台積電</td>
+      <td>100,000</td>
+      <td>+22.22%</td>
+      <td>+0.45%</td>
+      <td>550,000</td>
+      <td>2.27%</td>
+    </tr>
+    <tr>
+      <td>6223</td>
+      <td>旺矽</td>
+      <td>30,000</td>
+      <td>+26.09%</td>
+      <td>+0.16%</td>
+      <td>145,000</td>
+      <td>1.56%</td>
+    </tr>
+  </tbody>
+</table><h4>[減] 減持最多 TOP 5 (量體)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+<div class="tab-content tab-pct">
+<h4>[增] 增持幅度 TOP 5 (意圖)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>6223</td>
+      <td>旺矽</td>
+      <td>30,000</td>
+      <td>+26.09%</td>
+      <td>+0.16%</td>
+      <td>145,000</td>
+      <td>1.56%</td>
+    </tr>
+    <tr>
+      <td>2330</td>
+      <td>台積電</td>
+      <td>100,000</td>
+      <td>+22.22%</td>
+      <td>+0.45%</td>
+      <td>550,000</td>
+      <td>2.27%</td>
+    </tr>
+    <tr>
+      <td>2327</td>
+      <td>國巨*</td>
+      <td>200,000</td>
+      <td>+10.00%</td>
+      <td>-0.19%</td>
+      <td>2,200,000</td>
+      <td>3.27%</td>
+    </tr>
+  </tbody>
+</table><h4>[減] 減持幅度 TOP 5 (意圖)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+</div>
+<h3>[00990A] 持股變動排行榜</h3>
+
+        <div class="tab-container" id="etf-tabs-00990A">
+            <div>
+                <button class="tab-btn active" onclick="switchTab('etf-tabs-00990A', 'tab-vol', this)">依股數增減 (量體)</button>
+                <button class="tab-btn" onclick="switchTab('etf-tabs-00990A', 'tab-pct', this)">依變動幅度 (意圖)</button>
+            </div>
+            <div class="tab-content tab-vol active">
+        <h4>[增] 增持最多 TOP 5 (量體)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>2449</td>
+      <td>京元電子</td>
+      <td>834,000</td>
+      <td>新建倉</td>
+      <td>+0.60%</td>
+      <td>834,000</td>
+      <td>0.60%</td>
+    </tr>
+    <tr>
+      <td>3711</td>
+      <td>日月光投控</td>
+      <td>455,000</td>
+      <td>新建倉</td>
+      <td>+0.67%</td>
+      <td>455,000</td>
+      <td>0.67%</td>
+    </tr>
+    <tr>
+      <td>2330</td>
+      <td>台積電</td>
+      <td>87,000</td>
+      <td>+23.97%</td>
+      <td>+0.58%</td>
+      <td>450,000</td>
+      <td>2.62%</td>
+    </tr>
+  </tbody>
+</table><h4>[減] 減持最多 TOP 5 (量體)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>2308</td>
+      <td>台達電</td>
+      <td>-179,000</td>
+      <td>-24.06%</td>
+      <td>-0.84%</td>
+      <td>565,000</td>
+      <td>2.51%</td>
+    </tr>
+    <tr>
+      <td>3665</td>
+      <td>貿聯-KY</td>
+      <td>-144,000</td>
+      <td>清倉</td>
+      <td>-0.67%</td>
+      <td>0</td>
+      <td>0.00%</td>
+    </tr>
+  </tbody>
+</table></div>
+<div class="tab-content tab-pct">
+<h4>[增] 增持幅度 TOP 5 (意圖)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>2449</td>
+      <td>京元電子</td>
+      <td>834,000</td>
+      <td>新建倉</td>
+      <td>+0.60%</td>
+      <td>834,000</td>
+      <td>0.60%</td>
+    </tr>
+    <tr>
+      <td>3711</td>
+      <td>日月光投控</td>
+      <td>455,000</td>
+      <td>新建倉</td>
+      <td>+0.67%</td>
+      <td>455,000</td>
+      <td>0.67%</td>
+    </tr>
+    <tr>
+      <td>2330</td>
+      <td>台積電</td>
+      <td>87,000</td>
+      <td>+23.97%</td>
+      <td>+0.58%</td>
+      <td>450,000</td>
+      <td>2.62%</td>
+    </tr>
+  </tbody>
+</table><h4>[減] 減持幅度 TOP 5 (意圖)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>3665</td>
+      <td>貿聯-KY</td>
+      <td>-144,000</td>
+      <td>清倉</td>
+      <td>-0.67%</td>
+      <td>0</td>
+      <td>0.00%</td>
+    </tr>
+    <tr>
+      <td>2308</td>
+      <td>台達電</td>
+      <td>-179,000</td>
+      <td>-24.06%</td>
+      <td>-0.84%</td>
+      <td>565,000</td>
+      <td>2.51%</td>
+    </tr>
+  </tbody>
+</table></div>
+</div>
+<h3>[00992A] 持股變動排行榜</h3>
+
+        <div class="tab-container" id="etf-tabs-00992A">
+            <div>
+                <button class="tab-btn active" onclick="switchTab('etf-tabs-00992A', 'tab-vol', this)">依股數增減 (量體)</button>
+                <button class="tab-btn" onclick="switchTab('etf-tabs-00992A', 'tab-pct', this)">依變動幅度 (意圖)</button>
+            </div>
+            <div class="tab-content tab-vol active">
+        <h4>[增] 增持最多 TOP 5 (量體)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>2327</td>
+      <td>國巨*</td>
+      <td>500,000</td>
+      <td>+31.93%</td>
+      <td>+0.83%</td>
+      <td>2,066,000</td>
+      <td>4.45%</td>
+    </tr>
+    <tr>
+      <td>6488</td>
+      <td>環球晶</td>
+      <td>220,000</td>
+      <td>+126.44%</td>
+      <td>+0.73%</td>
+      <td>394,000</td>
+      <td>1.27%</td>
+    </tr>
+  </tbody>
+</table><h4>[減] 減持最多 TOP 5 (量體)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+<div class="tab-content tab-pct">
+<h4>[增] 增持幅度 TOP 5 (意圖)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>6488</td>
+      <td>環球晶</td>
+      <td>220,000</td>
+      <td>+126.44%</td>
+      <td>+0.73%</td>
+      <td>394,000</td>
+      <td>1.27%</td>
+    </tr>
+    <tr>
+      <td>2327</td>
+      <td>國巨*</td>
+      <td>500,000</td>
+      <td>+31.93%</td>
+      <td>+0.83%</td>
+      <td>2,066,000</td>
+      <td>4.45%</td>
+    </tr>
+  </tbody>
+</table><h4>[減] 減持幅度 TOP 5 (意圖)</h4>
+<p class='empty-msg'>無紀錄</p>
+</div>
+</div>
+<h3>[00982A] 持股變動排行榜</h3>
+
+        <div class="tab-container" id="etf-tabs-00982A">
+            <div>
+                <button class="tab-btn active" onclick="switchTab('etf-tabs-00982A', 'tab-vol', this)">依股數增減 (量體)</button>
+                <button class="tab-btn" onclick="switchTab('etf-tabs-00982A', 'tab-pct', this)">依變動幅度 (意圖)</button>
+            </div>
+            <div class="tab-content tab-vol active">
+        <h4>[增] 增持最多 TOP 5 (量體)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>5274</td>
+      <td>信驊</td>
+      <td>900</td>
+      <td>+10.00%</td>
+      <td>-0.01%</td>
+      <td>9,900</td>
+      <td>0.26%</td>
+    </tr>
+  </tbody>
+</table><h4>[減] 減持最多 TOP 5 (量體)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>6805</td>
+      <td>富世達</td>
+      <td>-121,000</td>
+      <td>清倉</td>
+      <td>-0.35%</td>
+      <td>0</td>
+      <td>0.00%</td>
+    </tr>
+  </tbody>
+</table></div>
+<div class="tab-content tab-pct">
+<h4>[增] 增持幅度 TOP 5 (意圖)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>5274</td>
+      <td>信驊</td>
+      <td>900</td>
+      <td>+10.00%</td>
+      <td>-0.01%</td>
+      <td>9,900</td>
+      <td>0.26%</td>
+    </tr>
+  </tbody>
+</table><h4>[減] 減持幅度 TOP 5 (意圖)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>6805</td>
+      <td>富世達</td>
+      <td>-121,000</td>
+      <td>清倉</td>
+      <td>-0.35%</td>
+      <td>0</td>
+      <td>0.00%</td>
+    </tr>
+  </tbody>
+</table></div>
+</div>
+<h3>[00991A] 持股變動排行榜</h3>
+
+        <div class="tab-container" id="etf-tabs-00991A">
+            <div>
+                <button class="tab-btn active" onclick="switchTab('etf-tabs-00991A', 'tab-vol', this)">依股數增減 (量體)</button>
+                <button class="tab-btn" onclick="switchTab('etf-tabs-00991A', 'tab-pct', this)">依變動幅度 (意圖)</button>
+            </div>
+            <div class="tab-content tab-vol active">
+        <h4>[增] 增持最多 TOP 5 (量體)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>3026</td>
+      <td>禾伸堂企</td>
+      <td>1,100,000</td>
+      <td>+122.22%</td>
+      <td>+1.49%</td>
+      <td>2,000,000</td>
+      <td>2.67%</td>
+    </tr>
+    <tr>
+      <td>2327</td>
+      <td>國巨股份</td>
+      <td>500,000</td>
+      <td>+7.81%</td>
+      <td>-0.47%</td>
+      <td>6,900,000</td>
+      <td>8.24%</td>
+    </tr>
+    <tr>
+      <td>2408</td>
+      <td>南亞科技</td>
+      <td>500,000</td>
+      <td>+5.56%</td>
+      <td>+0.37%</td>
+      <td>9,500,000</td>
+      <td>5.49%</td>
+    </tr>
+    <tr>
+      <td>2330</td>
+      <td>台灣積體</td>
+      <td>400,000</td>
+      <td>+11.43%</td>
+      <td>+0.84%</td>
+      <td>3,900,000</td>
+      <td>12.50%</td>
+    </tr>
+    <tr>
+      <td>2492</td>
+      <td>華新科技</td>
+      <td>400,000</td>
+      <td>+12.50%</td>
+      <td>-0.19%</td>
+      <td>3,600,000</td>
+      <td>2.22%</td>
+    </tr>
+  </tbody>
+</table><h4>[減] 減持最多 TOP 5 (量體)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>8210</td>
+      <td>勤誠興業</td>
+      <td>-409,000</td>
+      <td>-99.76%</td>
+      <td>-0.71%</td>
+      <td>1,000</td>
+      <td>0.00%</td>
+    </tr>
+    <tr>
+      <td>5274</td>
+      <td>信驊科技</td>
+      <td>-14,500</td>
+      <td>-12.61%</td>
+      <td>-0.71%</td>
+      <td>100,500</td>
+      <td>1.82%</td>
+    </tr>
+    <tr>
+      <td>3324</td>
+      <td>雙鴻科技</td>
+      <td>-1,000</td>
+      <td>清倉</td>
+      <td>-0.00%</td>
+      <td>0</td>
+      <td>0.00%</td>
+    </tr>
+  </tbody>
+</table></div>
+<div class="tab-content tab-pct">
+<h4>[增] 增持幅度 TOP 5 (意圖)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>2883</td>
+      <td>凱基金融</td>
+      <td>9,000</td>
+      <td>新建倉</td>
+      <td>+0.00%</td>
+      <td>9,000</td>
+      <td>0.00%</td>
+    </tr>
+    <tr>
+      <td>3026</td>
+      <td>禾伸堂企</td>
+      <td>1,100,000</td>
+      <td>+122.22%</td>
+      <td>+1.49%</td>
+      <td>2,000,000</td>
+      <td>2.67%</td>
+    </tr>
+    <tr>
+      <td>2345</td>
+      <td>智邦科技</td>
+      <td>160,000</td>
+      <td>+16.00%</td>
+      <td>+0.22%</td>
+      <td>1,160,000</td>
+      <td>3.80%</td>
+    </tr>
+    <tr>
+      <td>2383</td>
+      <td>台光電子</td>
+      <td>160,000</td>
+      <td>+16.00%</td>
+      <td>+0.74%</td>
+      <td>1,160,000</td>
+      <td>8.15%</td>
+    </tr>
+    <tr>
+      <td>2492</td>
+      <td>華新科技</td>
+      <td>400,000</td>
+      <td>+12.50%</td>
+      <td>-0.19%</td>
+      <td>3,600,000</td>
+      <td>2.22%</td>
+    </tr>
+  </tbody>
+</table><h4>[減] 減持幅度 TOP 5 (意圖)</h4>
+<table border="1" class="dataframe styled-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>股票代碼</th>
+      <th>股票名稱</th>
+      <th>股數變動</th>
+      <th>股數變動幅度</th>
+      <th>權重變動(%)</th>
+      <th>最新股數</th>
+      <th>最新權重(%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>3324</td>
+      <td>雙鴻科技</td>
+      <td>-1,000</td>
+      <td>清倉</td>
+      <td>-0.00%</td>
+      <td>0</td>
+      <td>0.00%</td>
+    </tr>
+    <tr>
+      <td>8210</td>
+      <td>勤誠興業</td>
+      <td>-409,000</td>
+      <td>-99.76%</td>
+      <td>-0.71%</td>
+      <td>1,000</td>
+      <td>0.00%</td>
+    </tr>
+    <tr>
+      <td>5274</td>
+      <td>信驊科技</td>
+      <td>-14,500</td>
+      <td>-12.61%</td>
+      <td>-0.71%</td>
+      <td>100,500</td>
+      <td>1.82%</td>
+    </tr>
+  </tbody>
+</table></div>
+</div>
+</body>
+</html>

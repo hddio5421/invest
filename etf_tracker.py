@@ -156,6 +156,11 @@ def fetch_etf_holdings(etf_code, today_str):
         for i in range(min(40, len(df_raw))):
             row_values = [str(x) for x in df_raw.iloc[i].values]
             joined = "".join(row_values)
+            
+            # Skip futures header
+            if '期貨' in joined and ('代' in joined or '名' in joined):
+                continue
+                
             if ('代' in joined or '名' in joined) and ('權' in joined or '股' in joined):
                 start_row = i + 1
                 df_raw.columns = df_raw.iloc[i]
