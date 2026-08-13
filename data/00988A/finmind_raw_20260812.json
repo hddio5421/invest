@@ -1,0 +1,575 @@
+{
+  "request": {
+    "dataset": "TaiwanStockActiveETFHolding",
+    "data_id": "00988A",
+    "target_label_date": "2026-08-12",
+    "selected_source_date": "2026-08-11"
+  },
+  "response": {
+    "msg": "success",
+    "status": 200,
+    "data": [
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "AMD US",
+        "component_stock_name": "ADVANCED MICRO DEVICES.amd us(超微半導體公司)",
+        "asset_type": "stock",
+        "shares": 184500,
+        "weight": 4.98,
+        "market_value": 87512040.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "MU US",
+        "component_stock_name": "MICRON TECHNOLOGY INC",
+        "asset_type": "stock",
+        "shares": 100000,
+        "weight": 4.95,
+        "market_value": 86852000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "LITE US",
+        "component_stock_name": "LUMENTUM HOLDINGS INC",
+        "asset_type": "stock",
+        "shares": 102000,
+        "weight": 4.77,
+        "market_value": 83700180.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "3037",
+        "component_stock_name": "欣興",
+        "asset_type": "stock",
+        "shares": 2600000,
+        "weight": 4.55,
+        "market_value": 2579200000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "2383",
+        "component_stock_name": "台光電",
+        "asset_type": "stock",
+        "shares": 445000,
+        "weight": 4.35,
+        "market_value": 2463075000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "009150 KS",
+        "component_stock_name": "Samsung Electro-Mechanics co(009150 ks)",
+        "asset_type": "stock",
+        "shares": 70000,
+        "weight": 3.59,
+        "market_value": 89390000000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "6981 JP",
+        "component_stock_name": "MURATA MANUFACTURING CO LTD",
+        "asset_type": "stock",
+        "shares": 1350000,
+        "weight": 3.53,
+        "market_value": 9857700000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "PANW US",
+        "component_stock_name": "PALO ALTO NETWORKS INC",
+        "asset_type": "stock",
+        "shares": 150000,
+        "weight": 3.28,
+        "market_value": 57570000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "CRDO US",
+        "component_stock_name": "CREDO TECHNOLOGY GROUP HOLDI",
+        "asset_type": "stock",
+        "shares": 225000,
+        "weight": 3.17,
+        "market_value": 55730250.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "2330",
+        "component_stock_name": "台積電",
+        "asset_type": "stock",
+        "shares": 750000,
+        "weight": 3.17,
+        "market_value": 1796250000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "2454",
+        "component_stock_name": "聯發科",
+        "asset_type": "stock",
+        "shares": 445000,
+        "weight": 3.16,
+        "market_value": 1788900000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "285A JP",
+        "component_stock_name": "KIOXIA HOLDINGS CORP",
+        "asset_type": "stock",
+        "shares": 180000,
+        "weight": 3.09,
+        "market_value": 8641800000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "6223",
+        "component_stock_name": "旺矽",
+        "asset_type": "stock",
+        "shares": 242000,
+        "weight": 2.7,
+        "market_value": 1528230000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "TSEM US",
+        "component_stock_name": "TOWER SEMICONDUCTOR LTD",
+        "asset_type": "stock",
+        "shares": 186825,
+        "weight": 2.66,
+        "market_value": 46627783.5,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "WDC US",
+        "component_stock_name": "WESTERN DIGITAL CORP",
+        "asset_type": "stock",
+        "shares": 105000,
+        "weight": 2.62,
+        "market_value": 45982650.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "AMAT US",
+        "component_stock_name": "APPLIED MATERIALS INC",
+        "asset_type": "stock",
+        "shares": 85000,
+        "weight": 2.54,
+        "market_value": 44676850.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "BE US",
+        "component_stock_name": "BLOOM ENERGY CORP- A",
+        "asset_type": "stock",
+        "shares": 210000,
+        "weight": 2.53,
+        "market_value": 44354100.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "MRVL US",
+        "component_stock_name": "MARVELL TECHNOLOGY INC",
+        "asset_type": "stock",
+        "shares": 205000,
+        "weight": 2.48,
+        "market_value": 43523550.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "SNOW US",
+        "component_stock_name": "SNOWFLAKE INC-CLASS A(Snowflake公司)",
+        "asset_type": "stock",
+        "shares": 115000,
+        "weight": 2.19,
+        "market_value": 38426100.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "3711",
+        "component_stock_name": "日月光投控",
+        "asset_type": "stock",
+        "shares": 1800000,
+        "weight": 2.0,
+        "market_value": 1132200000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "NOW US",
+        "component_stock_name": "SERVICENOW INC",
+        "asset_type": "stock",
+        "shares": 270000,
+        "weight": 1.96,
+        "market_value": 34435800.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "300408 CH",
+        "component_stock_name": "CHAOZHOU THREE-CIRCLE GROU-A",
+        "asset_type": "stock",
+        "shares": 1749879,
+        "weight": 1.92,
+        "market_value": 227571763.95,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "6871 JP",
+        "component_stock_name": "MICRONICS JAPAN CO LTD",
+        "asset_type": "stock",
+        "shares": 370000,
+        "weight": 1.84,
+        "market_value": 5139300000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "COHR US",
+        "component_stock_name": "COHERENT INC",
+        "asset_type": "stock",
+        "shares": 95000,
+        "weight": 1.78,
+        "market_value": 31214150.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "IFX GY",
+        "component_stock_name": "INFINEON TECHNOLOGIES AG",
+        "asset_type": "stock",
+        "shares": 425000,
+        "weight": 1.76,
+        "market_value": 26711250.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "2327",
+        "component_stock_name": "國巨",
+        "asset_type": "stock",
+        "shares": 1550000,
+        "weight": 1.69,
+        "market_value": 956350000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "6976 JP",
+        "component_stock_name": "TAIYO YUDEN CO LTD",
+        "asset_type": "stock",
+        "shares": 450000,
+        "weight": 1.54,
+        "market_value": 4296600000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "SNDK US",
+        "component_stock_name": "SANDISK CORP",
+        "asset_type": "stock",
+        "shares": 21000,
+        "weight": 1.52,
+        "market_value": 26692050.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "2308",
+        "component_stock_name": "台達電",
+        "asset_type": "stock",
+        "shares": 468000,
+        "weight": 1.49,
+        "market_value": 844740000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "MPWR US",
+        "component_stock_name": "MONOLITHIC POWER SYSTEMS INC",
+        "asset_type": "stock",
+        "shares": 18000,
+        "weight": 1.44,
+        "market_value": 25237980.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "6997 JP",
+        "component_stock_name": "NIPPON CHEMI-CON CORP",
+        "asset_type": "stock",
+        "shares": 1275100,
+        "weight": 1.32,
+        "market_value": 3697790000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "LMT US",
+        "component_stock_name": "LOCKHEED MARTIN CORP",
+        "asset_type": "stock",
+        "shares": 38000,
+        "weight": 1.29,
+        "market_value": 22715260.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "TER US",
+        "component_stock_name": "TERADYNE INC",
+        "asset_type": "stock",
+        "shares": 55000,
+        "weight": 1.19,
+        "market_value": 20875800.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "301377 CH",
+        "component_stock_name": "GUANGDONG DTECH TECHNOLOGY-A",
+        "asset_type": "stock",
+        "shares": 291988,
+        "weight": 1.06,
+        "market_value": 125265771.88,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "3017",
+        "component_stock_name": "奇鋐",
+        "asset_type": "stock",
+        "shares": 215000,
+        "weight": 1.05,
+        "market_value": 593400000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "FORM US",
+        "component_stock_name": "FORMFACTOR INC",
+        "asset_type": "stock",
+        "shares": 150454,
+        "weight": 1.04,
+        "market_value": 18215465.78,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "6787 JP",
+        "component_stock_name": "MEIKO ELECTRONICS CO LTD",
+        "asset_type": "stock",
+        "shares": 160000,
+        "weight": 0.97,
+        "market_value": 2705600000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "AEHR US",
+        "component_stock_name": "AEHR TEST SYSTEMS",
+        "asset_type": "stock",
+        "shares": 140344,
+        "weight": 0.94,
+        "market_value": 16445509.92,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "9988 HK",
+        "component_stock_name": "ALIBABA GROUP HOLDING LTD",
+        "asset_type": "stock",
+        "shares": 1000000,
+        "weight": 0.92,
+        "market_value": 126400000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "3308 HK",
+        "component_stock_name": "ZHONGJI INNOLIGHT CO LTD-H",
+        "asset_type": "stock",
+        "shares": 110000,
+        "weight": 0.81,
+        "market_value": 112090000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "PLTR US",
+        "component_stock_name": "PALANTIR TECHNOLOGIES INC-A",
+        "asset_type": "stock",
+        "shares": 80000,
+        "weight": 0.8,
+        "market_value": 13995200.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "NET US",
+        "component_stock_name": "CLOUDFLARE INC - CLASS A",
+        "asset_type": "stock",
+        "shares": 45000,
+        "weight": 0.79,
+        "market_value": 13813650.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "AIXA GY",
+        "component_stock_name": "AIXTRON SE",
+        "asset_type": "stock",
+        "shares": 200000,
+        "weight": 0.55,
+        "market_value": 8414000.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-11",
+        "stock_id": "00988A",
+        "component_stock_id": "VECO US",
+        "component_stock_name": "VEECO INSTRUMENTS INC",
+        "asset_type": "stock",
+        "shares": 7952,
+        "weight": 0.02,
+        "market_value": 398832.56,
+        "currency": ""
+      }
+    ]
+  },
+  "net_asset_estimate": 56632222682.1192,
+  "net_asset_method": "finmind_market_value_div_weight",
+  "valuation_rows": [
+    {
+      "stock_id": "3037",
+      "asset_type": "stock",
+      "weight": 4.55,
+      "market_value_twd": 2579200000.0,
+      "close": 0.0,
+      "method": "finmind_market_value"
+    },
+    {
+      "stock_id": "2383",
+      "asset_type": "stock",
+      "weight": 4.35,
+      "market_value_twd": 2463075000.0,
+      "close": 0.0,
+      "method": "finmind_market_value"
+    },
+    {
+      "stock_id": "2330",
+      "asset_type": "stock",
+      "weight": 3.17,
+      "market_value_twd": 1796250000.0,
+      "close": 0.0,
+      "method": "finmind_market_value"
+    },
+    {
+      "stock_id": "2454",
+      "asset_type": "stock",
+      "weight": 3.16,
+      "market_value_twd": 1788900000.0,
+      "close": 0.0,
+      "method": "finmind_market_value"
+    },
+    {
+      "stock_id": "6223",
+      "asset_type": "stock",
+      "weight": 2.7,
+      "market_value_twd": 1528230000.0,
+      "close": 0.0,
+      "method": "finmind_market_value"
+    },
+    {
+      "stock_id": "3711",
+      "asset_type": "stock",
+      "weight": 2.0,
+      "market_value_twd": 1132200000.0,
+      "close": 0.0,
+      "method": "finmind_market_value"
+    },
+    {
+      "stock_id": "2327",
+      "asset_type": "stock",
+      "weight": 1.69,
+      "market_value_twd": 956350000.0,
+      "close": 0.0,
+      "method": "finmind_market_value"
+    },
+    {
+      "stock_id": "2308",
+      "asset_type": "stock",
+      "weight": 1.49,
+      "market_value_twd": 844740000.0,
+      "close": 0.0,
+      "method": "finmind_market_value"
+    },
+    {
+      "stock_id": "3017",
+      "asset_type": "stock",
+      "weight": 1.05,
+      "market_value_twd": 593400000.0,
+      "close": 0.0,
+      "method": "finmind_market_value"
+    }
+  ],
+  "downloaded_at": "2026-08-13T19:58:11+08:00"
+}

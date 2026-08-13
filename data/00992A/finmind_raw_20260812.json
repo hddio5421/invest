@@ -1,0 +1,722 @@
+{
+  "request": {
+    "dataset": "TaiwanStockActiveETFHolding",
+    "data_id": "00992A",
+    "target_label_date": "2026-08-12",
+    "selected_source_date": "2026-08-12"
+  },
+  "response": {
+    "msg": "success",
+    "status": 200,
+    "data": [
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "2059",
+        "component_stock_name": "川湖",
+        "asset_type": "stock",
+        "shares": 293000,
+        "weight": 8.2705,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "2330",
+        "component_stock_name": "台積電",
+        "asset_type": "stock",
+        "shares": 1406000,
+        "weight": 7.9572,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "3017",
+        "component_stock_name": "奇鋐",
+        "asset_type": "stock",
+        "shares": 1002000,
+        "weight": 6.8331,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "2383",
+        "component_stock_name": "台光電",
+        "asset_type": "stock",
+        "shares": 466000,
+        "weight": 6.2574,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "3665",
+        "component_stock_name": "貿聯-KY",
+        "asset_type": "stock",
+        "shares": 1161000,
+        "weight": 5.8632,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "3037",
+        "component_stock_name": "欣興",
+        "asset_type": "stock",
+        "shares": 2497000,
+        "weight": 5.8516,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "2345",
+        "component_stock_name": "智邦",
+        "asset_type": "stock",
+        "shares": 1080000,
+        "weight": 5.606,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "3008",
+        "component_stock_name": "大立光",
+        "asset_type": "stock",
+        "shares": 420000,
+        "weight": 4.5128,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "8996",
+        "component_stock_name": "高力",
+        "asset_type": "stock",
+        "shares": 1630000,
+        "weight": 4.4692,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "6223",
+        "component_stock_name": "旺矽",
+        "asset_type": "stock",
+        "shares": 263000,
+        "weight": 4.0677,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "2454",
+        "component_stock_name": "聯發科",
+        "asset_type": "stock",
+        "shares": 406000,
+        "weight": 3.82,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "3231",
+        "component_stock_name": "緯創",
+        "asset_type": "stock",
+        "shares": 7662000,
+        "weight": 3.4744,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "6584",
+        "component_stock_name": "南俊國際",
+        "asset_type": "stock",
+        "shares": 2231000,
+        "weight": 2.8389,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "8021",
+        "component_stock_name": "尖點",
+        "asset_type": "stock",
+        "shares": 2682000,
+        "weight": 2.6837,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "2308",
+        "component_stock_name": "台達電",
+        "asset_type": "stock",
+        "shares": 632000,
+        "weight": 2.6511,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "2455",
+        "component_stock_name": "全新",
+        "asset_type": "stock",
+        "shares": 2753000,
+        "weight": 2.4806,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "1303",
+        "component_stock_name": "南亞",
+        "asset_type": "stock",
+        "shares": 5445000,
+        "weight": 2.4116,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "3711",
+        "component_stock_name": "日月光投控",
+        "asset_type": "stock",
+        "shares": 1629000,
+        "weight": 2.3706,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "1815",
+        "component_stock_name": "富喬",
+        "asset_type": "stock",
+        "shares": 10877000,
+        "weight": 2.294,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "3661",
+        "component_stock_name": "世芯-KY",
+        "asset_type": "stock",
+        "shares": 215000,
+        "weight": 2.043,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "3443",
+        "component_stock_name": "創意",
+        "asset_type": "stock",
+        "shares": 160000,
+        "weight": 1.9235,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "3189",
+        "component_stock_name": "景碩",
+        "asset_type": "stock",
+        "shares": 840013,
+        "weight": 1.689,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "4958",
+        "component_stock_name": "臻鼎-KY",
+        "asset_type": "stock",
+        "shares": 1000000,
+        "weight": 1.1049,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "6669",
+        "component_stock_name": "緯穎",
+        "asset_type": "stock",
+        "shares": 77000,
+        "weight": 1.0871,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "6187",
+        "component_stock_name": "萬潤",
+        "asset_type": "stock",
+        "shares": 401000,
+        "weight": 1.0853,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "8046",
+        "component_stock_name": "南電",
+        "asset_type": "stock",
+        "shares": 300000,
+        "weight": 0.8893,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "6515",
+        "component_stock_name": "穎崴",
+        "asset_type": "stock",
+        "shares": 42000,
+        "weight": 0.7057,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "7751",
+        "component_stock_name": "竑騰",
+        "asset_type": "stock",
+        "shares": 182000,
+        "weight": 0.5608,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "6139",
+        "component_stock_name": "亞翔",
+        "asset_type": "stock",
+        "shares": 250000,
+        "weight": 0.4751,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "6805",
+        "component_stock_name": "富世達",
+        "asset_type": "stock",
+        "shares": 109000,
+        "weight": 0.4687,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "7734",
+        "component_stock_name": "印能科技",
+        "asset_type": "stock",
+        "shares": 56000,
+        "weight": 0.4396,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "2337",
+        "component_stock_name": "旺宏",
+        "asset_type": "stock",
+        "shares": 1343000,
+        "weight": 0.4296,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "5289",
+        "component_stock_name": "宜鼎",
+        "asset_type": "stock",
+        "shares": 98000,
+        "weight": 0.349,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "3260",
+        "component_stock_name": "威剛",
+        "asset_type": "stock",
+        "shares": 358000,
+        "weight": 0.3435,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "3583",
+        "component_stock_name": "辛耘",
+        "asset_type": "stock",
+        "shares": 147000,
+        "weight": 0.2528,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "5347",
+        "component_stock_name": "世界",
+        "asset_type": "stock",
+        "shares": 629000,
+        "weight": 0.2351,
+        "market_value": 0.0,
+        "currency": ""
+      },
+      {
+        "date": "2026-08-12",
+        "stock_id": "00992A",
+        "component_stock_id": "3264",
+        "component_stock_name": "欣銓",
+        "asset_type": "stock",
+        "shares": 72000,
+        "weight": 0.0365,
+        "market_value": 0.0,
+        "currency": ""
+      }
+    ]
+  },
+  "net_asset_estimate": 42672552393.40254,
+  "net_asset_method": "finmind_close_x_shares_div_weight",
+  "valuation_rows": [
+    {
+      "stock_id": "2059",
+      "asset_type": "stock",
+      "weight": 8.2705,
+      "market_value_twd": 3529185000.0,
+      "close": 12045.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "2330",
+      "asset_type": "stock",
+      "weight": 7.9572,
+      "market_value_twd": 3395490000.0,
+      "close": 2415.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "3017",
+      "asset_type": "stock",
+      "weight": 6.8331,
+      "market_value_twd": 2915820000.0,
+      "close": 2910.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "2383",
+      "asset_type": "stock",
+      "weight": 6.2574,
+      "market_value_twd": 2670180000.0,
+      "close": 5730.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "3665",
+      "asset_type": "stock",
+      "weight": 5.8632,
+      "market_value_twd": 2501955000.0,
+      "close": 2155.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "3037",
+      "asset_type": "stock",
+      "weight": 5.8516,
+      "market_value_twd": 2497000000.0,
+      "close": 1000.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "2345",
+      "asset_type": "stock",
+      "weight": 5.606,
+      "market_value_twd": 2392200000.0,
+      "close": 2215.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "3008",
+      "asset_type": "stock",
+      "weight": 4.5128,
+      "market_value_twd": 1925700000.0,
+      "close": 4585.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "8996",
+      "asset_type": "stock",
+      "weight": 4.4692,
+      "market_value_twd": 1907100000.0,
+      "close": 1170.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "6223",
+      "asset_type": "stock",
+      "weight": 4.0677,
+      "market_value_twd": 1735800000.0,
+      "close": 6600.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "2454",
+      "asset_type": "stock",
+      "weight": 3.82,
+      "market_value_twd": 1630090000.0,
+      "close": 4015.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "3231",
+      "asset_type": "stock",
+      "weight": 3.4744,
+      "market_value_twd": 1482597000.0,
+      "close": 193.5,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "6584",
+      "asset_type": "stock",
+      "weight": 2.8389,
+      "market_value_twd": 1211433000.0,
+      "close": 543.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "8021",
+      "asset_type": "stock",
+      "weight": 2.6837,
+      "market_value_twd": 1145214000.0,
+      "close": 427.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "2308",
+      "asset_type": "stock",
+      "weight": 2.6511,
+      "market_value_twd": 1131280000.0,
+      "close": 1790.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "2455",
+      "asset_type": "stock",
+      "weight": 2.4806,
+      "market_value_twd": 1058528500.0,
+      "close": 384.5,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "1303",
+      "asset_type": "stock",
+      "weight": 2.4116,
+      "market_value_twd": 1029105000.0,
+      "close": 189.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "3711",
+      "asset_type": "stock",
+      "weight": 2.3706,
+      "market_value_twd": 1011609000.0,
+      "close": 621.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "1815",
+      "asset_type": "stock",
+      "weight": 2.294,
+      "market_value_twd": 978930000.0,
+      "close": 90.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "3661",
+      "asset_type": "stock",
+      "weight": 2.043,
+      "market_value_twd": 871825000.0,
+      "close": 4055.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "3443",
+      "asset_type": "stock",
+      "weight": 1.9235,
+      "market_value_twd": 820800000.0,
+      "close": 5130.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "3189",
+      "asset_type": "stock",
+      "weight": 1.689,
+      "market_value_twd": 720731154.0,
+      "close": 858.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "4958",
+      "asset_type": "stock",
+      "weight": 1.1049,
+      "market_value_twd": 471500000.0,
+      "close": 471.5,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "6669",
+      "asset_type": "stock",
+      "weight": 1.0871,
+      "market_value_twd": 463925000.0,
+      "close": 6025.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "6187",
+      "asset_type": "stock",
+      "weight": 1.0853,
+      "market_value_twd": 463155000.0,
+      "close": 1155.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "8046",
+      "asset_type": "stock",
+      "weight": 0.8893,
+      "market_value_twd": 379500000.0,
+      "close": 1265.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "6515",
+      "asset_type": "stock",
+      "weight": 0.7057,
+      "market_value_twd": 301140000.0,
+      "close": 7170.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "7751",
+      "asset_type": "stock",
+      "weight": 0.5608,
+      "market_value_twd": 239330000.0,
+      "close": 1315.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "6139",
+      "asset_type": "stock",
+      "weight": 0.4751,
+      "market_value_twd": 202750000.0,
+      "close": 811.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "6805",
+      "asset_type": "stock",
+      "weight": 0.4687,
+      "market_value_twd": 200015000.0,
+      "close": 1835.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "7734",
+      "asset_type": "stock",
+      "weight": 0.4396,
+      "market_value_twd": 187600000.0,
+      "close": 3350.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "2337",
+      "asset_type": "stock",
+      "weight": 0.4296,
+      "market_value_twd": 183319500.0,
+      "close": 136.5,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "5289",
+      "asset_type": "stock",
+      "weight": 0.349,
+      "market_value_twd": 148960000.0,
+      "close": 1520.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "3260",
+      "asset_type": "stock",
+      "weight": 0.3435,
+      "market_value_twd": 146601000.0,
+      "close": 409.5,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "3583",
+      "asset_type": "stock",
+      "weight": 0.2528,
+      "market_value_twd": 107898000.0,
+      "close": 734.0,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "5347",
+      "asset_type": "stock",
+      "weight": 0.2351,
+      "market_value_twd": 100325500.0,
+      "close": 159.5,
+      "method": "finmind_close_x_shares"
+    },
+    {
+      "stock_id": "3264",
+      "asset_type": "stock",
+      "weight": 0.0365,
+      "market_value_twd": 15588000.0,
+      "close": 216.5,
+      "method": "finmind_close_x_shares"
+    }
+  ],
+  "downloaded_at": "2026-08-13T19:58:11+08:00"
+}

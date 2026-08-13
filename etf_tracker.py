@@ -1,6 +1,7 @@
 import os
 import glob
 import json
+import re
 import pandas as pd
 from datetime import datetime, timedelta
 import traceback
@@ -22,9 +23,91 @@ URL_MAPPING = {
     '00991A': 'https://www.fhtrust.com.tw/ETF/etf_detail/ETF23#stockhold',
 }
 
+EZMONEY_FUND_CODES = {
+    '00981A': '49YTW',
+    '00403A': '63YTW',
+    '00988A': '61YTW',
+}
+
+CAPITALFUND_ETFS = {'00992A', '00982A'}
+
+def download_ezmoney_excel(context, etf, today_str):
+    """直接下載統一投信官方 Excel，避免商品頁背景連線使 networkidle 逾時。"""
+    fund_code = EZMONEY_FUND_CODES[etf]
+    download_url = f"https://www.ezmoney.com.tw/ETF/Fund/AssetExcelNPOI?fundCode={fund_code}"
+    response = context.request.get(download_url, timeout=15000)
+    body = response.body()
+    if response.status != 200:
+        raise RuntimeError(f"統一投信 Excel HTTP {response.status}")
+    if len(body) < 100 or not body.startswith(b'PK'):
+        raise RuntimeError(f"統一投信回傳內容不是有效 XLSX（{len(body)} bytes）")
+
+    disposition = response.headers.get('content-disposition', '')
+    match = re.search(r'(20\d{6})', disposition)
+    source_date = match.group(1) if match else ''
+    target_dir = os.path.join('data', etf)
+    os.makedirs(target_dir, exist_ok=True)
+    save_path = os.path.join(target_dir, f"{today_str}.xlsx")
+    temp_path = save_path + '.tmp'
+    with open(temp_path, 'wb') as file_handle:
+        file_handle.write(body)
+    os.replace(temp_path, save_path)
+    print(
+        f"[Success] {etf} 統一官方 Excel 直連下載完成: {save_path} "
+        f"(官方檔案日期: {source_date or '未提供'})"
+    )
+    return save_path, source_date
+
+def download_capitalfund_excel(context, etf, url, today_str):
+    """使用群益官網的下載按鈕，避免等待背景連線造成 networkidle 逾時。"""
+    page = context.new_page()
+    target_dir = os.path.join('data', etf)
+    os.makedirs(target_dir, exist_ok=True)
+    save_path = os.path.join(target_dir, f"{today_str}.xlsx")
+    temp_path = save_path + '.tmp'
+
+    try:
+        page.goto(url, wait_until='domcontentloaded', timeout=45000)
+        page.wait_for_timeout(4000)
+
+        title = page.title().strip()
+        if etf not in title:
+            raise RuntimeError(f"群益投信基金映射不符：預期 {etf}，頁面標題為 {title or '空白'}")
+
+        button = page.locator("text=/下載資料/i").first
+        if button.count() == 0:
+            raise RuntimeError("群益投信頁面找不到下載資料按鈕")
+
+        try:
+            with page.expect_download(timeout=15000) as download_info:
+                button.click()
+        except Exception:
+            with page.expect_download(timeout=15000) as download_info:
+                button.evaluate("el => el.click()")
+
+        download = download_info.value
+        download.save_as(temp_path)
+        with open(temp_path, 'rb') as file_handle:
+            signature = file_handle.read(4)
+        if os.path.getsize(temp_path) < 100 or signature != b'PK\x03\x04':
+            raise RuntimeError("群益投信回傳內容不是有效 XLSX")
+
+        os.replace(temp_path, save_path)
+        print(
+            f"[Success] {etf} 群益官方 Excel 下載完成: {save_path} "
+            f"(原始檔名: {download.suggested_filename or '未提供'})"
+        )
+        return save_path, download.suggested_filename
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        page.close()
+
 def download_all_etfs(today_str):
     """
-    使用 Playwright 自動化化瀏覽器下載各家投信的檔案，並歸檔至 data/<ETF代碼>/YYYYMMDD.*
+    統一投信使用官方 Excel 直連，群益投信使用 domcontentloaded 後下載，
+    其他來源使用 Playwright 下載，
+    並歸檔至 data/<ETF代碼>/YYYYMMDD.*
     """
     os.makedirs('data', exist_ok=True)
     
@@ -59,6 +142,20 @@ def download_all_etfs(today_str):
                     continue
                     
                 print(f"[Download] 準備下載 {etf} ... 網址: {url}")
+
+                if etf in EZMONEY_FUND_CODES:
+                    try:
+                        download_ezmoney_excel(context, etf, today_str)
+                    except Exception as e:
+                        print(f"[Error] 下載 {etf} 失敗: {e}")
+                    continue
+
+                if etf in CAPITALFUND_ETFS:
+                    try:
+                        download_capitalfund_excel(context, etf, url, today_str)
+                    except Exception as e:
+                        print(f"[Error] 下載 {etf} 失敗: {e}")
+                    continue
                 
                 # 每個 ETF 都開一個新的 page，避免同一網站 (SPA) 的網頁狀態或快取干擾
                 page = context.new_page()
@@ -71,12 +168,8 @@ def download_all_etfs(today_str):
                     
                     # 尋找下載按鈕
                     button = None
-                    if 'ezmoney.com.tw' in url:
-                        button = page.locator("text=/匯出(XLSX|EXCEL)檔?/i").first
-                    elif 'yuantaetfs.com' in url:
+                    if 'yuantaetfs.com' in url:
                         button = page.locator("text=/匯出(excel)?/i").first
-                    elif 'capitalfund.com.tw' in url:
-                        button = page.locator("text=/下載資料/i").first
                     elif 'fhtrust.com.tw' in url:
                         button = page.locator("text=/檔案下載/i").first
                         
@@ -1529,6 +1622,8 @@ def fetch_etf_meta(etf_code, today_str):
     nav = 0.0
     units = 0.0
     data_date = ""
+    holding_source = "official"
+    net_asset_method = "official_file"
     for i, row in enumerate(rows):
         cells = ["" if pd.isna(x) else str(x).strip() for x in row]
         joined = " ".join(cells)
@@ -1538,13 +1633,17 @@ def fetch_etf_meta(etf_code, today_str):
                 data_date = match.group(1)
         label = cells[0]
         value = next((c for c in cells[1:] if c), "")
+        if "持股來源" in label and value:
+            holding_source = value.strip().lower()
+        if "淨資產估算方式" in label and value:
+            net_asset_method = value.strip()
         if "基金資產淨值" in label and not value and i + 1 < len(rows):
             value = str(rows[i + 1][0])
         if "基金在外流通單位數" in label and not value and i + 1 < len(rows):
             value = str(rows[i + 1][0])
         if "基金每單位淨值" in label and not value and i + 1 < len(rows):
             value = str(rows[i + 1][0])
-        if ("淨資產" in label or "資產總淨值" in label or "基金淨資產價值" in label) and "每" not in label:
+        if ("淨資產" in label or "資產總淨值" in label or "基金資產淨值" in label or "基金淨資產價值" in label) and "每" not in label and "估算方式" not in label:
             net_asset = parse_money_number(value)
         elif "每單位淨值" in label or "每受益權單位淨資產價值" in label:
             nav = parse_money_number(value)
@@ -1562,10 +1661,15 @@ def fetch_etf_meta(etf_code, today_str):
         "Net_Asset": net_asset,
         "NAV": nav,
         "Units": units,
+        "Holding_Source": holding_source,
+        "Net_Asset_Method": net_asset_method,
     }
 
 def empty_fund_meta_df():
-    return pd.DataFrame(columns=["ETF", "File_Date", "Data_Date", "Net_Asset", "NAV", "Units"])
+    return pd.DataFrame(columns=[
+        "ETF", "File_Date", "Data_Date", "Net_Asset", "NAV", "Units",
+        "Holding_Source", "Net_Asset_Method"
+    ])
 
 def read_fund_meta(date_str):
     path = f"history/fund_meta_{date_str}.csv"
@@ -2011,6 +2115,7 @@ def main():
             df = fetch_etf_holdings(etf, today_str)
             if not df.empty:
                 df['ETF'] = etf
+                df['Holding_Source'] = meta.get('Holding_Source', 'official') if meta else 'official'
                 effective_date = today_str
                 if meta and etf not in SOURCE_DATE_EXCLUDED_ETFS:
                     source_date = normalize_source_date(meta.get("Data_Date"))
